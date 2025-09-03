@@ -87,11 +87,13 @@ INSERT INTO `cargo_meta` (`cargo_id`, `meta_field`, `meta_value`) VALUES
 (1, 'sender_name', 'Mark Cooper'),
 (1, 'sender_contact', '09123456789'),
 (1, 'sender_address', 'Sample Address Only'),
+(1, 'sender_email', 'mark.cooper@email.com'),
 (1, 'sender_provided_id_type', 'TIN'),
 (1, 'sender_provided_id', '456789954'),
 (1, 'receiver_name', 'Samantha Jane Miller'),
 (1, 'receiver_contact', '096547892213'),
 (1, 'receiver_address', 'This a sample address only'),
+(1, 'receiver_email', 'samantha.miller@email.com'),
 (1, 'from_location', 'This is a sample From Location'),
 (1, 'to_location', 'This is a sample of Cargo\'s Destination.');
 

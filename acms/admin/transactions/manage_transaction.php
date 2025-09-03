@@ -54,6 +54,10 @@ while($row = $cargo_type_qry->fetch_assoc()){
                                             <input type="text" name="sender_contact" id="sender_contact" class="form-control form-control-sm form-control-border" value="<?= isset($sender_contact) ? $sender_contact : '' ?>" required>
                                         </div>
                                         <div class="form-group mb-2">
+                                            <label for="sender_email" class="control-label">Email Address</label>
+                                            <input type="email" name="sender_email" id="sender_email" class="form-control form-control-sm form-control-border" value="<?= isset($sender_email) ? $sender_email : '' ?>" required>
+                                        </div>
+                                        <div class="form-group mb-2">
                                             <label for="sender_address" class="control-label">Address</label>
                                             <textarea rows="3" name="sender_address" id="sender_address" class="form-control form-control-sm rounded-0" required><?= isset($sender_address) ? $sender_address : '' ?></textarea>
                                         </div>
@@ -81,6 +85,10 @@ while($row = $cargo_type_qry->fetch_assoc()){
                                         <div class="form-group mb-2">
                                             <label for="receiver_contact" class="control-label">Contact #</label>
                                             <input type="text" name="receiver_contact" id="receiver_contact" class="form-control form-control-sm form-control-border" value="<?= isset($receiver_contact) ? $receiver_contact : '' ?>" required>
+                                        </div>
+                                        <div class="form-group mb-2">
+                                            <label for="receiver_email" class="control-label">Email Address</label>
+                                            <input type="email" name="receiver_email" id="receiver_email" class="form-control form-control-sm form-control-border" value="<?= isset($receiver_email) ? $receiver_email : '' ?>" required>
                                         </div>
                                         <div class="form-group mb-2">
                                             <label for="receiver_address" class="control-label">Address</label>

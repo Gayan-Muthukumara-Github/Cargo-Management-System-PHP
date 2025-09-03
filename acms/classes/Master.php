@@ -1,5 +1,6 @@
 <?php
 require_once('../config.php');
+require_once('EmailNotification.php');
 Class Master extends DBConnection {
 	private $settings;
 	public function __construct(){
@@ -169,6 +170,11 @@ Class Master extends DBConnection {
 			// if(empty($id)){
 				$save_track = $this->add_track($cid,"Pending"," Shipment created.");
 			// }
+			
+			// Send email notifications for new shipments
+			if(empty($id) && $resp['status'] == 'success'){
+				$this->sendShipmentEmailNotification($cid);
+			}
 		}else{
 			$resp['status'] = 'failed';
 			$resp['err'] = $this->conn->error."[{$sql}]";
@@ -205,7 +211,13 @@ Class Master extends DBConnection {
 		if($update){
 			$resp['status'] = 'success';
 			$resp['msg'] = " Shipment Status has been updated.";
+			$remarks = !empty($remarks) ? $remarks : "No remarks provided";
 			$save_track = $this->add_track($id,$status_lbl[$status],$remarks);
+			
+			// Send email notification for status update
+			if($resp['status'] == 'success'){
+				$this->sendStatusUpdateEmailNotification($id, $status, $remarks);
+			}
 		}else{
 			$resp['status'] = 'failed';
 			$resp['msg'] = " Shipment Status has failed update.";
@@ -224,6 +236,52 @@ Class Master extends DBConnection {
 			return false;
 		}
 		return false;
+	}
+	
+	function sendShipmentEmailNotification($cargo_id){
+		try {
+			// Get cargo data
+			$cargo_qry = $this->conn->query("SELECT * FROM `cargo_list` where id = '{$cargo_id}'");
+			if($cargo_qry->num_rows > 0){
+				$cargo_data = $cargo_qry->fetch_assoc();
+				
+				// Get cargo meta data
+				$meta_qry = $this->conn->query("SELECT * FROM `cargo_meta` where cargo_id = '{$cargo_id}'");
+				while($row = $meta_qry->fetch_assoc()){
+					$cargo_data[$row['meta_field']] = $row['meta_value'];
+				}
+				
+				// Send email notification
+				$emailNotification = new EmailNotification();
+				$emailNotification->sendShipmentCreatedNotification($cargo_data);
+			}
+		} catch (Exception $e) {
+			// Log error but don't break the main process
+			error_log("Email notification error: " . $e->getMessage());
+		}
+	}
+	
+	function sendStatusUpdateEmailNotification($cargo_id, $new_status, $remarks = ''){
+		try {
+			// Get cargo data
+			$cargo_qry = $this->conn->query("SELECT * FROM `cargo_list` where id = '{$cargo_id}'");
+			if($cargo_qry->num_rows > 0){
+				$cargo_data = $cargo_qry->fetch_assoc();
+				
+				// Get cargo meta data
+				$meta_qry = $this->conn->query("SELECT * FROM `cargo_meta` where cargo_id = '{$cargo_id}'");
+				while($row = $meta_qry->fetch_assoc()){
+					$cargo_data[$row['meta_field']] = $row['meta_value'];
+				}
+				
+				// Send email notification
+				$emailNotification = new EmailNotification();
+				$emailNotification->sendStatusUpdateNotification($cargo_data, $new_status, $remarks);
+			}
+		} catch (Exception $e) {
+			// Log error but don't break the main process
+			error_log("Email notification error: " . $e->getMessage());
+		}
 	}
 }
 
