@@ -58,12 +58,76 @@
     }
   })
 </script>
-<!-- Footer-->
-<footer class="py-4 bg-gradient-primary">
-            <div class="container">
-              <p class="m-0 text-center text-white">Copyright &copy; <?php echo $_settings->info('short_name') ?> 2025</p>
-          </div>
-        </footer>
+<!-- Modern Footer-->
+<footer class="footer-modern">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="d-flex align-items-center mb-3">
+                    <img src="<?php echo validate_image($_settings->info('logo')) ?>" width="40" height="40" class="me-3" alt="Logo">
+                    <h5 class="mb-0"><?php echo $_settings->info('short_name') ?></h5>
+                </div>
+                <p class="text-muted mb-3">Your trusted partner for reliable cargo and shipment management services. We ensure your packages reach their destination safely and on time.</p>
+                <div class="d-flex gap-3">
+                    <a href="#" class="text-white"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="text-white"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-white"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="#" class="text-white"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-6 mb-4">
+                <h5>Quick Links</h5>
+                <ul class="list-unstyled">
+                    <li class="mb-2"><a href="./">Home</a></li>
+                    <li class="mb-2"><a href="./?p=trace_form">Trace Shipment</a></li>
+                    <li class="mb-2"><a href="./?p=about">About Us</a></li>
+                    <li class="mb-2"><a href="./?p=contact">Contact</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <h5>Services</h5>
+                <ul class="list-unstyled">
+                    <li class="mb-2"><a href="#">City to City Delivery</a></li>
+                    <li class="mb-2"><a href="#">State to State Shipping</a></li>
+                    <li class="mb-2"><a href="#">International Shipping</a></li>
+                    <li class="mb-2"><a href="#">Express Delivery</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <h5>Contact Info</h5>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        <span>123 Business Street, City, State 12345</span>
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-phone me-2"></i>
+                        <span>+1 (555) 123-4567</span>
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-envelope me-2"></i>
+                        <span>info@<?php echo strtolower($_settings->info('short_name')) ?>.com</span>
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-clock me-2"></i>
+                        <span>Mon - Fri: 9:00 AM - 6:00 PM</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; <?php echo date('Y') ?> <?php echo $_settings->info('short_name') ?>. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="#" class="text-muted me-3">Privacy Policy</a>
+                    <a href="#" class="text-muted">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
 
    
     <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->

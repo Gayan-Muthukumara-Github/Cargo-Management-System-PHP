@@ -87,13 +87,11 @@ INSERT INTO `cargo_meta` (`cargo_id`, `meta_field`, `meta_value`) VALUES
 (1, 'sender_name', 'Mark Cooper'),
 (1, 'sender_contact', '09123456789'),
 (1, 'sender_address', 'Sample Address Only'),
-(1, 'sender_email', 'mark.cooper@email.com'),
 (1, 'sender_provided_id_type', 'TIN'),
 (1, 'sender_provided_id', '456789954'),
 (1, 'receiver_name', 'Samantha Jane Miller'),
 (1, 'receiver_contact', '096547892213'),
 (1, 'receiver_address', 'This a sample address only'),
-(1, 'receiver_email', 'samantha.miller@email.com'),
 (1, 'from_location', 'This is a sample From Location'),
 (1, 'to_location', 'This is a sample of Cargo\'s Destination.');
 
@@ -304,6 +302,65 @@ ALTER TABLE `cargo_meta`
 ALTER TABLE `tracking_list`
   ADD CONSTRAINT `cargo_id_FK2` FOREIGN KEY (`cargo_id`) REFERENCES `cargo_list` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 COMMIT;
+
+-- ---------------------------------------------
+-- Dynamic Storage / Warehouse Management Tables
+-- ---------------------------------------------
+
+-- Warehouses master
+CREATE TABLE IF NOT EXISTS `warehouses` (
+  `id` int(30) NOT NULL AUTO_INCREMENT,
+  `name` varchar(191) NOT NULL,
+  `code` varchar(64) NOT NULL,
+  `description` text DEFAULT NULL,
+  `date_created` datetime NOT NULL DEFAULT current_timestamp(),
+  `date_updated` datetime DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_warehouses_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Storage units/slots within a warehouse
+CREATE TABLE IF NOT EXISTS `storage_units` (
+  `id` int(30) NOT NULL AUTO_INCREMENT,
+  `warehouse_id` int(30) NOT NULL,
+  `zone` varchar(128) NOT NULL,
+  `unit_code` varchar(128) NOT NULL,
+  `capacity_weight` double NOT NULL DEFAULT 0, -- kg
+  `length_cm` int(11) NOT NULL DEFAULT 0,
+  `width_cm` int(11) NOT NULL DEFAULT 0,
+  `height_cm` int(11) NOT NULL DEFAULT 0,
+  `type_allowed` varchar(64) NOT NULL DEFAULT 'general', -- general|perishable|hazardous|any
+  `is_refrigerated` tinyint(1) NOT NULL DEFAULT 0,
+  `is_hazardous_zone` tinyint(1) NOT NULL DEFAULT 0,
+  `near_exit` tinyint(1) NOT NULL DEFAULT 0,
+  `occupied_weight` double NOT NULL DEFAULT 0, -- kg used
+  `is_occupied` tinyint(1) NOT NULL DEFAULT 0,
+  `status` tinyint(1) NOT NULL DEFAULT 1, -- 1=active,0=inactive
+  `date_created` datetime NOT NULL DEFAULT current_timestamp(),
+  `date_updated` datetime DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_storage_unit_code` (`warehouse_id`,`unit_code`),
+  KEY `idx_storage_units_wh_status` (`warehouse_id`,`status`),
+  CONSTRAINT `fk_storage_units_warehouse` FOREIGN KEY (`warehouse_id`) REFERENCES `warehouses` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Cargo allocation mapping
+CREATE TABLE IF NOT EXISTS `cargo_allocation` (
+  `id` int(30) NOT NULL AUTO_INCREMENT,
+  `cargo_id` int(30) NOT NULL,
+  `storage_unit_id` int(30) NOT NULL,
+  `allocated_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `released_at` datetime DEFAULT NULL,
+  `status` varchar(32) NOT NULL DEFAULT 'allocated', -- allocated|released
+  PRIMARY KEY (`id`),
+  KEY `idx_allocation_cargo` (`cargo_id`,`status`),
+  KEY `idx_allocation_unit` (`storage_unit_id`,`status`),
+  CONSTRAINT `fk_allocation_cargo` FOREIGN KEY (`cargo_id`) REFERENCES `cargo_list` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_allocation_unit` FOREIGN KEY (`storage_unit_id`) REFERENCES `storage_units` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Helpful index for cargo_meta lookups
+ALTER TABLE `cargo_meta` ADD INDEX `idx_cargo_meta_field` (`cargo_id`, `meta_field`(50));
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

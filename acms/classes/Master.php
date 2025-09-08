@@ -170,6 +170,11 @@ Class Master extends DBConnection {
 			// if(empty($id)){
 				$save_track = $this->add_track($cid,"Pending"," Shipment created.");
 			// }
+
+			// Attempt dynamic storage allocation on new cargo
+			if(empty($id)){
+				$this->allocate_storage_for_cargo($cid);
+			}
 			
 			// Send email notifications for new shipments
 			if(empty($id) && $resp['status'] == 'success'){
@@ -213,6 +218,11 @@ Class Master extends DBConnection {
 			$resp['msg'] = " Shipment Status has been updated.";
 			$remarks = !empty($remarks) ? $remarks : "No remarks provided";
 			$save_track = $this->add_track($id,$status_lbl[$status],$remarks);
+
+			// If delivered, free allocated storage
+			if(isset($status) && (int)$status === 4){
+				$this->release_storage_for_cargo($id);
+			}
 			
 			// Send email notification for status update
 			if($resp['status'] == 'success'){
@@ -226,6 +236,96 @@ Class Master extends DBConnection {
 		if($resp['status'] == 'success')
 		$this->settings->set_flashdata('success',$resp['msg']);
 		return json_encode($resp);
+	}
+
+	/**
+	 * Dynamic Storage Allocation
+	 */
+	private function get_cargo_profile($cargo_id){
+		$profile = [
+			'type' => 'general',
+			'weight' => 0,
+			'length_cm' => 0,
+			'width_cm' => 0,
+			'height_cm' => 0,
+			'priority' => 'normal',
+			'refrigerated' => 0,
+			'hazardous' => 0
+		];
+		$q = $this->conn->query("SELECT meta_field, meta_value FROM cargo_meta WHERE cargo_id='{$cargo_id}'");
+		while($r = $q->fetch_assoc()){
+			$k = strtolower($r['meta_field']);
+			$v = $r['meta_value'];
+			if(in_array($k,['type','cargo_type'])) $profile['type'] = strtolower($v);
+			if($k==='weight' || $k==='total_weight') $profile['weight'] = (float)$v;
+			if($k==='length_cm' || $k==='length') $profile['length_cm'] = (int)$v;
+			if($k==='width_cm' || $k==='width') $profile['width_cm'] = (int)$v;
+			if($k==='height_cm' || $k==='height') $profile['height_cm'] = (int)$v;
+			if($k==='priority') $profile['priority'] = strtolower($v);
+			if($k==='refrigerated') $profile['refrigerated'] = (int)$v ? 1 : 0;
+			if($k==='hazardous') $profile['hazardous'] = (int)$v ? 1 : 0;
+		}
+		return $profile;
+	}
+
+	public function allocate_storage_for_cargo($cargo_id){
+		$cargo_id = (int)$cargo_id;
+		// Skip if already allocated
+		$exists = $this->conn->query("SELECT id FROM cargo_allocation WHERE cargo_id='{$cargo_id}' AND status='allocated' LIMIT 1");
+		if($exists && $exists->num_rows) return true;
+
+		$P = $this->get_cargo_profile($cargo_id);
+		$type = $this->conn->real_escape_string($P['type']);
+		$weight = (float)$P['weight'];
+		$need_ref = $P['refrigerated'] || $type==='perishable' ? 1 : 0;
+		$need_haz = $P['hazardous'] || $type==='hazardous' ? 1 : 0;
+
+		// Build filter
+		$where = [];
+		$where[] = "status=1";
+		$where[] = "(capacity_weight - occupied_weight) >= {$weight}";
+		$where[] = "is_occupied IN (0,1)"; // allow partially occupied by weight
+		if($need_ref) $where[] = "is_refrigerated=1";
+		if($need_haz) $where[] = "is_hazardous_zone=1";
+		// type compatibility
+		$where[] = "(type_allowed='any' OR type_allowed='".$type."')";
+
+		$sql = "SELECT *, (capacity_weight - occupied_weight) AS free_wt FROM storage_units
+			WHERE ".implode(' AND ', $where)."
+			ORDER BY near_exit DESC, free_wt ASC, is_refrigerated DESC
+			LIMIT 1";
+		$res = $this->conn->query($sql);
+		if(!$res || !$res->num_rows){
+			// No slot found
+			return false;
+		}
+		$unit = $res->fetch_assoc();
+		$unit_id = (int)$unit['id'];
+
+		// Allocate: update unit occupied weight and flag
+		$upd = $this->conn->query("UPDATE storage_units SET occupied_weight = occupied_weight + {$weight}, is_occupied = 1 WHERE id='{$unit_id}'");
+		if(!$upd){
+			return false;
+		}
+		$this->conn->query("INSERT INTO cargo_allocation (cargo_id, storage_unit_id, status) VALUES ('{$cargo_id}','{$unit_id}','allocated')");
+		return true;
+	}
+
+	public function release_storage_for_cargo($cargo_id){
+		$cargo_id = (int)$cargo_id;
+		// Find active allocation
+		$q = $this->conn->query("SELECT id, storage_unit_id FROM cargo_allocation WHERE cargo_id='{$cargo_id}' AND status='allocated' ORDER BY id DESC LIMIT 1");
+		if(!$q || !$q->num_rows) return true;
+		$row = $q->fetch_assoc();
+		$alloc_id = (int)$row['id'];
+		$unit_id = (int)$row['storage_unit_id'];
+		$P = $this->get_cargo_profile($cargo_id);
+		$weight = (float)$P['weight'];
+		// Decrease occupied weight
+		$this->conn->query("UPDATE storage_units SET occupied_weight = GREATEST(0, occupied_weight - {$weight}), is_occupied = CASE WHEN (occupied_weight - {$weight}) > 0 THEN 1 ELSE 0 END WHERE id='{$unit_id}'");
+		// Mark allocation released
+		$this->conn->query("UPDATE cargo_allocation SET status='released', released_at=NOW() WHERE id='{$alloc_id}'");
+		return true;
 	}
 	function add_track($cargo_id = '', $title= '', $description=''){
 		if(!empty($cargo_id) && !empty($title) && !empty($description)){
