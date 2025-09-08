@@ -6,9 +6,7 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="fas fa-warehouse mr-2"></i>Warehouse Overview</h3>
-            <div class="card-tools">
-              <a href="<?php echo base_url ?>admin/?page=warehouse/manage_unit" class="btn btn-sm btn-light"><i class="fas fa-plus mr-1"></i>Add Storage Unit</a>
-            </div>
+            
           </div>
           <div class="card-body">
             <?php 

@@ -303,6 +303,11 @@ ALTER TABLE `tracking_list`
   ADD CONSTRAINT `cargo_id_FK2` FOREIGN KEY (`cargo_id`) REFERENCES `cargo_list` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 COMMIT;
 
+-- Warehouse smart placement flags on cargo types
+ALTER TABLE `cargo_type_list`
+  ADD COLUMN `is_perishable` tinyint(1) NOT NULL DEFAULT 0 AFTER `country_price`,
+  ADD COLUMN `is_hazardous` tinyint(1) NOT NULL DEFAULT 0 AFTER `is_perishable`;
+
 -- ---------------------------------------------
 -- Dynamic Storage / Warehouse Management Tables
 -- ---------------------------------------------

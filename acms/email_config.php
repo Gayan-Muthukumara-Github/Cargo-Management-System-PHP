@@ -11,7 +11,7 @@ define('SMTP_USERNAME', 'mglmuthukumara@gmail.com'); // Your email address
 define('SMTP_PASSWORD', 'ojrk jwla ndqt nshq'); // Your email password or app password
 define('SMTP_ENCRYPTION', 'tls'); // 'tls' or 'ssl'
 define('FROM_EMAIL', 'mglmuthukumara@gmail.com'); // From email address
-define('FROM_NAME', 'ACMS System'); // From name
+define('FROM_NAME', 'CargoSwift System'); // From name
 
 /**
  * Popular Email Provider Settings:

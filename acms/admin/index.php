@@ -146,7 +146,7 @@
     .form-control {
       border: 2px solid var(--admin-border);
       border-radius: var(--admin-radius);
-      padding: 0.75rem 1rem;
+      padding: 0.25rem 1rem;
       background: white;
     }
     
@@ -349,6 +349,11 @@
      <?php if($_settings->chk_flashdata('success')): ?>
     <script>
       alert_toast("<?php echo $_settings->flashdata('success') ?>",'success')
+    </script>
+    <?php endif;?>      
+    <?php if($_settings->chk_flashdata('warning')): ?>
+    <script>
+      alert_toast("<?php echo $_settings->flashdata('warning') ?>",'warning')
     </script>
     <?php endif;?>      
      <?php $page = isset($_GET['page']) ? $_GET['page'] : 'home';  ?>

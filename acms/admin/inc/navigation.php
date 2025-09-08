@@ -191,6 +191,12 @@
         
         <?php if($_settings->userdata('type') == 1): ?>
         <li class="nav-header">Maintenance</li>
+        <li class="nav-item">
+          <a href="<?php echo base_url ?>admin/?page=analytics" class="nav-link nav-analytics">
+            <i class="nav-icon fas fa-chart-pie"></i>
+            <p>Analytics & Reports</p>
+          </a>
+        </li>
         
         <li class="nav-item">
           <a href="<?php echo base_url ?>admin/?page=cargo_types" class="nav-link nav-cargo_types">

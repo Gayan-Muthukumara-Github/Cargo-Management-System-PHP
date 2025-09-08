@@ -173,7 +173,13 @@ Class Master extends DBConnection {
 
 			// Attempt dynamic storage allocation on new cargo
 			if(empty($id)){
-				$this->allocate_storage_for_cargo($cid);
+				$allocated = $this->allocate_storage_for_cargo($cid);
+				if(!$allocated){
+					// Queue: no capacity available
+					$this->add_track($cid,"Awaiting Storage","No available storage capacity. Shipment queued.");
+					$resp['awaiting_storage'] = 1;
+					$this->settings->set_flashdata('warning',"Shipment queued: awaiting storage capacity.");
+				}
 			}
 			
 			// Send email notifications for new shipments
@@ -242,8 +248,9 @@ Class Master extends DBConnection {
 	 * Dynamic Storage Allocation
 	 */
 	private function get_cargo_profile($cargo_id){
+		// Derive profile from existing tables without requiring extra meta fields
 		$profile = [
-			'type' => 'general',
+			'type' => 'any',
 			'weight' => 0,
 			'length_cm' => 0,
 			'width_cm' => 0,
@@ -252,19 +259,19 @@ Class Master extends DBConnection {
 			'refrigerated' => 0,
 			'hazardous' => 0
 		];
-		$q = $this->conn->query("SELECT meta_field, meta_value FROM cargo_meta WHERE cargo_id='{$cargo_id}'");
-		while($r = $q->fetch_assoc()){
-			$k = strtolower($r['meta_field']);
-			$v = $r['meta_value'];
-			if(in_array($k,['type','cargo_type'])) $profile['type'] = strtolower($v);
-			if($k==='weight' || $k==='total_weight') $profile['weight'] = (float)$v;
-			if($k==='length_cm' || $k==='length') $profile['length_cm'] = (int)$v;
-			if($k==='width_cm' || $k==='width') $profile['width_cm'] = (int)$v;
-			if($k==='height_cm' || $k==='height') $profile['height_cm'] = (int)$v;
-			if($k==='priority') $profile['priority'] = strtolower($v);
-			if($k==='refrigerated') $profile['refrigerated'] = (int)$v ? 1 : 0;
-			if($k==='hazardous') $profile['hazardous'] = (int)$v ? 1 : 0;
+		$wq = $this->conn->query("SELECT COALESCE(SUM(weight),0) AS total_weight FROM cargo_items WHERE cargo_id='{$cargo_id}'");
+		if($wq && $wq->num_rows){
+			$profile['weight'] = (float)$wq->fetch_assoc()['total_weight'];
 		}
+		// Derive perishable/hazardous needs from selected cargo types
+		$tq = $this->conn->query("SELECT ct.is_perishable, ct.is_hazardous FROM cargo_items ci INNER JOIN cargo_type_list ct ON ct.id = ci.cargo_type_id WHERE ci.cargo_id='{$cargo_id}'");
+		$need_ref = 0; $need_haz = 0;
+		while($tq && $row = $tq->fetch_assoc()){
+			$need_ref = $need_ref || (int)$row['is_perishable'] ? 1 : 0;
+			$need_haz = $need_haz || (int)$row['is_hazardous'] ? 1 : 0;
+		}
+		$profile['refrigerated'] = $need_ref;
+		$profile['hazardous'] = $need_haz;
 		return $profile;
 	}
 
@@ -277,8 +284,8 @@ Class Master extends DBConnection {
 		$P = $this->get_cargo_profile($cargo_id);
 		$type = $this->conn->real_escape_string($P['type']);
 		$weight = (float)$P['weight'];
-		$need_ref = $P['refrigerated'] || $type==='perishable' ? 1 : 0;
-		$need_haz = $P['hazardous'] || $type==='hazardous' ? 1 : 0;
+		$need_ref = $P['refrigerated'] ? 1 : 0;
+		$need_haz = $P['hazardous'] ? 1 : 0;
 
 		// Build filter
 		$where = [];
@@ -287,8 +294,8 @@ Class Master extends DBConnection {
 		$where[] = "is_occupied IN (0,1)"; // allow partially occupied by weight
 		if($need_ref) $where[] = "is_refrigerated=1";
 		if($need_haz) $where[] = "is_hazardous_zone=1";
-		// type compatibility
-		$where[] = "(type_allowed='any' OR type_allowed='".$type."')";
+		// type compatibility (allow any type when cargo type is unknown)
+		$where[] = "(type_allowed='any' OR '".$type."'='any' OR type_allowed='".$type."')";
 
 		$sql = "SELECT *, (capacity_weight - occupied_weight) AS free_wt FROM storage_units
 			WHERE ".implode(' AND ', $where)."
