@@ -130,6 +130,97 @@ while($row = $cargo_type_qry->fetch_assoc()){
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Compliance & Validation Section -->
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <div class="card card-outline card-warning shadow rounded-0">
+                                    <div class="card-header">
+                                        <h5 class="card-title"><b><i class="fas fa-shield-alt mr-2"></i>Compliance & Validation</b></h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-lg-3 col-md-6">
+                                                <div class="form-group mb-2">
+                                                    <label for="weight_kg" class="control-label">Total Weight (kg)</label>
+                                                    <input type="number" step="0.01" name="weight_kg" id="weight_kg" class="form-control form-control-sm form-control-border" value="<?= isset($weight_kg) ? $weight_kg : '' ?>" placeholder="0.00">
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-3 col-md-6">
+                                                <div class="form-group mb-2">
+                                                    <label for="length_cm" class="control-label">Length (cm)</label>
+                                                    <input type="number" name="length_cm" id="length_cm" class="form-control form-control-sm form-control-border" value="<?= isset($length_cm) ? $length_cm : '' ?>" placeholder="0">
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-3 col-md-6">
+                                                <div class="form-group mb-2">
+                                                    <label for="width_cm" class="control-label">Width (cm)</label>
+                                                    <input type="number" name="width_cm" id="width_cm" class="form-control form-control-sm form-control-border" value="<?= isset($width_cm) ? $width_cm : '' ?>" placeholder="0">
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-3 col-md-6">
+                                                <div class="form-group mb-2">
+                                                    <label for="height_cm" class="control-label">Height (cm)</label>
+                                                    <input type="number" name="height_cm" id="height_cm" class="form-control form-control-sm form-control-border" value="<?= isset($height_cm) ? $height_cm : '' ?>" placeholder="0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-lg-4 col-md-6">
+                                                <div class="form-group mb-2">
+                                                    <div class="custom-control custom-checkbox">
+                                                        <input type="checkbox" class="custom-control-input" id="is_perishable" name="is_perishable" value="1" <?= isset($is_perishable) && $is_perishable ? 'checked' : '' ?>>
+                                                        <label class="custom-control-label" for="is_perishable">Perishable Goods</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-4 col-md-6">
+                                                <div class="form-group mb-2">
+                                                    <div class="custom-control custom-checkbox">
+                                                        <input type="checkbox" class="custom-control-input" id="is_hazardous" name="is_hazardous" value="1" <?= isset($is_hazardous) && $is_hazardous ? 'checked' : '' ?>>
+                                                        <label class="custom-control-label" for="is_hazardous">Hazardous Materials</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-4 col-md-6">
+                                                <div class="form-group mb-2">
+                                                    <div class="custom-control custom-checkbox">
+                                                        <input type="checkbox" class="custom-control-input" id="special_handling_required" name="special_handling_required" value="1" <?= isset($special_handling_required) && $special_handling_required ? 'checked' : '' ?>>
+                                                        <label class="custom-control-label" for="special_handling_required">Special Handling Required</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row" id="perishable_fields" style="display: none;">
+                                            <div class="col-lg-6">
+                                                <div class="form-group mb-2">
+                                                    <label for="max_storage_hours" class="control-label">Max Storage Hours</label>
+                                                    <input type="number" name="max_storage_hours" id="max_storage_hours" class="form-control form-control-sm form-control-border" value="<?= isset($max_storage_hours) ? $max_storage_hours : '48' ?>" placeholder="48">
+                                                    <small class="text-muted">Maximum hours perishable goods can be stored</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row" id="hazardous_fields" style="display: none;">
+                                            <div class="col-lg-12">
+                                                <div class="form-group mb-2">
+                                                    <label for="hazardous_documents" class="control-label">Safety Documents</label>
+                                                    <input type="file" name="hazardous_documents[]" id="hazardous_documents" class="form-control form-control-sm form-control-border" multiple accept=".pdf,.doc,.docx">
+                                                    <small class="text-muted">Upload MSDS, safety certificates, and other required documents</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="compliance_warnings" class="alert alert-warning" style="display: none;">
+                                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                                            <span id="compliance_warning_text"></span>
+                                        </div>
+                                        <div id="compliance_errors" class="alert alert-danger" style="display: none;">
+                                            <i class="fas fa-times-circle mr-2"></i>
+                                            <span id="compliance_error_text"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="row">
                             <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
                                 <div class="card card-outline card-info shadow rounded0">
@@ -139,7 +230,7 @@ while($row = $cargo_type_qry->fetch_assoc()){
                                     <div class="card-body">
                                         <div class="d-flex align-items-center justify-content-center mb-0 pb-0">
                                             <div class="col-3 border text-center"><b>Cargo Type</b></div>
-                                            <div class="col-3 border text-center"><b>Price</b></div>
+                                            <div class="col-3 border text-center"><b>Price($)</b></div>
                                             <div class="col-3 border text-center"><b>Weight/kg.</b></div>
                                             <div class="col-3 border text-center"><b>Total</b></div>
                                         </div>
@@ -171,7 +262,7 @@ while($row = $cargo_type_qry->fetch_assoc()){
                                         </div>
                                         <div class="d-flex align-items-center justify-content-center mb-0 pb-0">
                                             <div class="col-9 border text-center"><b>Total</b></div>
-                                            <div class="col-3 border text-center"><b id="gtotal"><?= isset($total_amount) ? format_num($total_amount) : '0.00' ?></b><input type="hidden" name="total_amount" value="<?= isset($total_amount) ? $total_amount : "" ?>"></div>
+                                            <div class="col-3 border text-center">$<b id="gtotal"><?= isset($total_amount) ? format_num($total_amount) : '0.00' ?></b><input type="hidden" name="total_amount" value="<?= isset($total_amount) ? $total_amount : "" ?>"></div>
                                         </div>
                                         <div class="clear-fix my-2"></div>
                                         <div class="text-right">
@@ -205,9 +296,9 @@ while($row = $cargo_type_qry->fetch_assoc()){
             <?php endforeach; ?>
         </select>
     </div>
-    <div class="d-table-cell col-3 px-2 py-1 border text-right"><span class="font-weight-bold price">0.00</span></div>
+    <div class="d-table-cell col-3 px-2 py-1 border text-right"><span class="font-weight-bold price">$0.00</span></div>
     <div class="d-table-cell col-3 px-2 py-1 border text-center"><input type="number" step="any" name="weight[]" class="form-control form-control-sm form-control-border text-right"></div>
-    <div class="d-table-cell col-3 px-2 py-1 border text-right"><span class="font-weight-bold total">0.00</span></div>
+    <div class="d-table-cell col-3 px-2 py-1 border text-right"><span class="font-weight-bold total">$0.00</span></div>
 </div>
 </noscript>
 <script>
@@ -246,11 +337,87 @@ while($row = $cargo_type_qry->fetch_assoc()){
         $('[name="total_amount"]').val(gtotal)
         $('#gtotal').text(parseFloat(gtotal).toLocaleString('en-US'))
     }
+    
+    // Compliance validation function
+    function validateCompliance() {
+        var warnings = [];
+        var errors = [];
+        
+        // Weight validation
+        var weight = parseFloat($('#weight_kg').val()) || 0;
+        if (weight > 1000) {
+            errors.push('Weight exceeds maximum limit (1000kg). Special handling required.');
+        } else if (weight > 800) {
+            warnings.push('Weight is approaching limit (800kg). Consider special handling.');
+        }
+        
+        // Size validation
+        var length = parseInt($('#length_cm').val()) || 0;
+        var width = parseInt($('#width_cm').val()) || 0;
+        var height = parseInt($('#height_cm').val()) || 0;
+        
+        if (length > 300 || width > 200 || height > 150) {
+            errors.push('Dimensions exceed standard limits. Special handling required.');
+        }
+        
+        // Hazardous materials validation
+        if ($('#is_hazardous').is(':checked')) {
+            var files = $('#hazardous_documents')[0].files;
+            if (files.length === 0) {
+                errors.push('Hazardous materials require safety documentation upload.');
+            }
+        }
+        
+        // Display warnings and errors
+        $('#compliance_warnings').hide();
+        $('#compliance_errors').hide();
+        
+        if (errors.length > 0) {
+            $('#compliance_error_text').text(errors.join(' '));
+            $('#compliance_errors').show();
+        } else if (warnings.length > 0) {
+            $('#compliance_warning_text').text(warnings.join(' '));
+            $('#compliance_warnings').show();
+        }
+        
+        return errors.length === 0;
+    }
 	$(document).ready(function(){
         $('.select2').select2({
             width:"100%",
             placeholder:"Please Select Here"
         })
+        
+        // Compliance validation handlers
+        $('#is_perishable').change(function(){
+            if($(this).is(':checked')){
+                $('#perishable_fields').show();
+            } else {
+                $('#perishable_fields').hide();
+            }
+        });
+        
+        $('#is_hazardous').change(function(){
+            if($(this).is(':checked')){
+                $('#hazardous_fields').show();
+            } else {
+                $('#hazardous_fields').hide();
+            }
+        });
+        
+        // Show/hide fields based on current state
+        if($('#is_perishable').is(':checked')){
+            $('#perishable_fields').show();
+        }
+        if($('#is_hazardous').is(':checked')){
+            $('#hazardous_fields').show();
+        }
+        
+        // Real-time compliance validation
+        $('#weight_kg, #length_cm, #width_cm, #height_cm').on('input', function(){
+            validateCompliance();
+        });
+        
         $('#add_item').click(function(){
             var item = $($('noscript#cargo-item-clone').html()).clone()
             $('#cargo-item-list').append(item)
@@ -261,30 +428,42 @@ while($row = $cargo_type_qry->fetch_assoc()){
             item.find("[name='cargo_type_id[]']").change(function(){
                 var id = $(this).val();
                 change_price(item, id)
+                validateCompliance();
             })
             item.find('[name="weight[]"]').on('input',function(){
                 console.log('test')
                 calc()
+                validateCompliance();
             })
         })
         $("[name='cargo_type_id[]']").change(function(){
             var id = $(this).val();
             change_price(item, id)
+            validateCompliance();
         })
         $('[name="weight[]"]').on('input',function(){
             console.log('test')
             calc()
+            validateCompliance();
         })
         $('#shipping_type').change(function(){
             $('#cargo-item-list .cargo-item').each(function(){
                 var id = $(this).find('[name="cargo_type_id[]"]').val()
                 change_price($(this), id)
             })
+            validateCompliance();
         })
 		$('#cargo-form').submit(function(e){
 			e.preventDefault();
             var _this = $(this)
 			 $('.err-msg').remove();
+			 
+			// Validate compliance before submission
+			if (!validateCompliance()) {
+				alert_toast("Please resolve compliance issues before submitting", 'error');
+				return false;
+			}
+			
 			start_loader();
 			$.ajax({
 				url:_base_url_+"classes/Master.php?f=save_cargo",

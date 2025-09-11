@@ -65,7 +65,6 @@ if(isset($_GET['id'])){
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <!-- <div class="small mb-1">SKU: BST-498</div> -->
                         <h1 class="display-5 fw-bolder border-bottom border-primary pb-1"><?php echo isset($model) ? $model : "" ?></h1>
                         <p class="m-0"><span class="text-muted">Brand: </span><div class="h4 font-weight-bolder w-auto"><?= isset($brand) ? $brand : "" ?></div></p>
                         <div>

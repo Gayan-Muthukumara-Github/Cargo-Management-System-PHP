@@ -212,7 +212,7 @@ class EmailNotification extends DBConnection {
                         <h3>Shipment Information</h3>
                         <p><strong>Reference Code:</strong> " . ($cargo_data['ref_code'] ?? '') . "</p>
                         <p><strong>Shipping Type:</strong> {$shipping_type_text}</p>
-                        <p><strong>Total Amount:</strong> ₱" . number_format($cargo_data['total_amount'] ?? 0, 2) . "</p>
+                        <p><strong>Total Amount:$</strong> ₱" . number_format($cargo_data['total_amount'] ?? 0, 2) . "</p>
                         <p><strong>Date Created:</strong> " . date('F j, Y g:i A') . "</p>
                     </div>
                     

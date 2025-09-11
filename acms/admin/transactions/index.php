@@ -27,7 +27,7 @@
 						<th>#</th>
 						<th>Date Added</th>
 						<th>Ref Code</th>
-						<th>Total Amount</th>
+						<th>Total Amount($)</th>
 						<th>Status</th>
 						<th>Action</th>
 					</tr>
@@ -42,7 +42,7 @@
 							<td class="text-center"><?php echo $i++; ?></td>
 							<td><?= date("Y-m-d H:i", strtotime($row['date_created'])) ?></p></td>
 							<td><p class="m-0 truncate-1"><?= $row['ref_code'] ?></p></td>
-							<td><p class="m-0 truncate-1 text-right"><?= format_num($row['total_amount']) ?></p></td>
+							<td><p class="m-0 truncate-1 text-right">$<?= format_num($row['total_amount']) ?></p></td>
 							<td class="text-center">
                                 <?php if($row['status'] == 1): ?>
                                     <span class="badge badge-primary bg-gradient-primary px-3 rounded-pill">In-Transit</span>

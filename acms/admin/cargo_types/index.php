@@ -28,7 +28,7 @@
 						<th>Date Created</th>
 						<th>Cargo Type</th>
 						<th>Description</th>
-						<th>Pricing/Kg.</th>
+						<th>Pricing($)/Kg.</th>
 						<th>Status</th>
 						<th>Action</th>
 					</tr>
@@ -45,9 +45,9 @@
 							<td><?php echo $row['name'] ?></td>
 							<td ><p class="m-0 truncate-1"><?= $row['description'] ?></p></td>
 							<td class="">
-								<small>City: <b><?= format_num($row['city_price']) ?></b></small><br>
-								<small>State: <b><?= format_num($row['state_price']) ?></b></small><br>
-								<small>Country: <b><?= format_num($row['country_price']) ?></b></small><br>
+								<small>City: $<b><?= format_num($row['city_price']) ?></b></small><br>
+								<small>State: $<b><?= format_num($row['state_price']) ?></b></small><br>
+								<small>Country: $<b><?= format_num($row['country_price']) ?></b></small><br>
 							</td>
 							<td class="text-center">
                                 <?php if($row['status'] == 1): ?>

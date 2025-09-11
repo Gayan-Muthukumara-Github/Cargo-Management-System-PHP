@@ -59,7 +59,7 @@
   </div>
 </div>
 
-<script src="<?php echo base_url ?>plugins/chart.js/Chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
 <script>
   const qs=(s)=>document.querySelector(s);
   const qsv=(s)=>qs(s)&&qs(s).value||'';
@@ -76,12 +76,20 @@
       url:url,
       method:'GET',
       data:params,
-      dataType:'json'
+      dataType:'json',
+      error: function(xhr, status, error) {
+        console.error('AJAX Error:', status, error);
+        console.error('Response:', xhr.responseText);
+      }
     });
   }
 
   let charts={};
   function upsertChart(key,type,labels,datasets,options){
+    if (typeof Chart === 'undefined') {
+      console.error('Chart.js is not loaded');
+      return;
+    }
     const ctx=document.getElementById(key).getContext('2d');
     if(charts[key]){ charts[key].data.labels=labels; charts[key].data.datasets=datasets; charts[key].update(); return; }
     charts[key]=new Chart(ctx,{type:type,data:{labels:labels,datasets:datasets},options:options||{responsive:true,maintainAspectRatio:false}});
@@ -118,7 +126,16 @@
     window.open(_base_url_+'admin/analytics_api.php?'+query,'_blank');
   });
 
-  $(function(){ reloadAll(); });
+  $(function(){ 
+    // Wait for Chart.js to load
+    setTimeout(function() {
+      if (typeof Chart !== 'undefined') {
+        reloadAll();
+      } else {
+        console.error('Chart.js failed to load');
+      }
+    }, 1000);
+  });
 </script>
 
 

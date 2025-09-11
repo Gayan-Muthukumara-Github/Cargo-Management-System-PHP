@@ -22,16 +22,16 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 			<textarea type="text" name="description" id="description" class="form-control form-control-sm rounded-0" required><?php echo isset($description) ? $description : ''; ?></textarea>
 		</div>
 		<div class="form-group">
-			<label for="city_price" class="control-label">City to City Price per kg.</label>
-			<input type="number" step="any" name="city_price" id="city_price" class="form-control form-control-sm rounded-0" value="<?php echo isset($city_price) ? $city_price : ''; ?>"  required/>
+			<label for="city_price" class="control-label">City to City Price per kg.($)</label>
+			<input type="number" step="any" name="city_price" id="city_price" class="form-control form-control-sm rounded-0" value="<?php echo isset($city_price) ? $city_price : ''; ?>"  placeholder="$" required />
 		</div>
 		<div class="form-group">
-			<label for="state_price" class="control-label">State to State Price per kg.</label>
-			<input type="number" step="any" name="state_price" id="state_price" class="form-control form-control-sm rounded-0" value="<?php echo isset($state_price) ? $state_price : ''; ?>"  required/>
+			<label for="state_price" class="control-label">State to State Price per kg.($)</label>
+			<input type="number" step="any" name="state_price" id="state_price" class="form-control form-control-sm rounded-0" value="<?php echo isset($state_price) ? $state_price : ''; ?>" placeholder="$" required/>
 		</div>
 		<div class="form-group">
-			<label for="country_price" class="control-label">Country to Country Price per kg.</label>
-			<input type="number" step="any" name="country_price" id="country_price" class="form-control form-control-sm rounded-0" value="<?php echo isset($country_price) ? $country_price : ''; ?>"  required/>
+			<label for="country_price" class="control-label">Country to Country Price per kg.($)</label>
+			<input type="number" step="any" name="country_price" id="country_price" class="form-control form-control-sm rounded-0" value="<?php echo isset($country_price) ? $country_price : ''; ?>" placeholder="$" required/>
 		</div>
 		<div class="form-group">
 			<label for="status" class="control-label">Status</label>

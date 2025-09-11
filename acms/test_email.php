@@ -1,6 +1,4 @@
 <?php
-// Test script for email functionality
-// This script can be used to test email notifications
 
 require_once('config.php');
 require_once('classes/EmailNotification.php');
@@ -28,13 +26,12 @@ if (!defined('SMTP_HOST') || SMTP_HOST === 'smtp.gmail.com' && SMTP_USERNAME ===
     exit;
 }
 
-// Test data - Update these email addresses to your own for testing
 $test_cargo_data = array(
     'ref_code' => 'TEST001',
     'sender_name' => 'John Doe',
-    'sender_email' => 'your-test-email@gmail.com', // Change this to your email
+    'sender_email' => 'your-test-email@gmail.com', 
     'receiver_name' => 'Jane Smith',
-    'receiver_email' => 'your-test-email@gmail.com', // Change this to your email
+    'receiver_email' => 'your-test-email@gmail.com', 
     'from_location' => 'New York, NY',
     'to_location' => 'Los Angeles, CA',
     'shipping_type' => '2',

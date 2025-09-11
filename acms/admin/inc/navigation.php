@@ -199,6 +199,13 @@
         </li>
         
         <li class="nav-item">
+          <a href="<?php echo base_url ?>admin/?page=compliance" class="nav-link nav-compliance">
+            <i class="nav-icon fas fa-shield-alt"></i>
+            <p>Compliance & Validation</p>
+          </a>
+        </li>
+        
+        <li class="nav-item">
           <a href="<?php echo base_url ?>admin/?page=cargo_types" class="nav-link nav-cargo_types">
             <i class="nav-icon fas fa-th-list"></i>
             <p>Cargo Types</p>
