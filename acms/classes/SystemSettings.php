@@ -28,6 +28,313 @@ class SystemSettings extends DBConnection{
 			}
 		return true;
 	}
+	function update_basic_info(){
+		$data = "";
+		foreach ($_POST as $key => $value) {
+			if(!in_array($key,array("content"))){
+				if(isset($_SESSION['system_info'][$key])){
+					$value = str_replace("'", "&apos;", $value);
+					$qry = $this->conn->query("UPDATE system_info set meta_value = '{$value}' where meta_field = '{$key}' ");
+				}else{
+					$qry = $this->conn->query("INSERT into system_info set meta_value = '{$value}', meta_field = '{$key}' ");
+				}
+			}
+		}
+		if(isset($_POST['content'])){
+			foreach($_POST['content'] as $k => $v){
+				file_put_contents(base_app.$k.".html",$v);
+			}
+		}
+		
+		$update = $this->update_system_info();
+		$flash = $this->set_flashdata('success','Basic Information Successfully Updated.');
+		if($update && $flash){
+			$resp['status'] = 'success';
+		}else{
+			$resp['status'] = 'failed';
+		}
+		return json_encode($resp);
+	}
+
+	function update_logo_simple(){
+		if(!empty($_FILES['img']['tmp_name'])){
+			$ext = pathinfo($_FILES['img']['name'], PATHINFO_EXTENSION);
+			$fname = "uploads/logo-".(time()).".$ext";
+			$accept = array('image/jpeg','image/png');
+			if(!in_array($_FILES['img']['type'],$accept)){
+				$err = "Image file type is invalid";
+				$resp['status'] = 'failed';
+				$resp['msg'] = $err;
+				return json_encode($resp);
+			}
+			
+			// Simple upload without GD processing
+			if(move_uploaded_file($_FILES['img']['tmp_name'], base_app.$fname)){
+				if(isset($_SESSION['system_info']['logo'])){
+					$qry = $this->conn->query("UPDATE system_info set meta_value = CONCAT('{$fname}', '?v=',unix_timestamp(CURRENT_TIMESTAMP)) where meta_field = 'logo' ");
+					if(is_file(base_app.$_SESSION['system_info']['logo'])) unlink(base_app.$_SESSION['system_info']['logo']);
+				}else{
+					$qry = $this->conn->query("INSERT into system_info set meta_value = '{$fname}',meta_field = 'logo' ");
+				}
+				$update = $this->update_system_info();
+				$flash = $this->set_flashdata('success','Logo Successfully Updated (without resizing).');
+				if($update && $flash){
+					$resp['status'] = 'success';
+				}else{
+					$resp['status'] = 'failed';
+				}
+				return json_encode($resp);
+			}else{
+				$resp['status'] = 'failed';
+				$resp['msg'] = 'Failed to upload image.';
+				return json_encode($resp);
+			}
+		}
+		
+		$update = $this->update_system_info();
+		$flash = $this->set_flashdata('success','Logo Successfully Updated.');
+		if($update && $flash){
+			$resp['status'] = 'success';
+		}else{
+			$resp['status'] = 'failed';
+		}
+		return json_encode($resp);
+	}
+
+	function update_logo(){
+		if(!empty($_FILES['img']['tmp_name'])){
+			$ext = pathinfo($_FILES['img']['name'], PATHINFO_EXTENSION);
+			$fname = "uploads/logo-".(time()).".$ext";
+			$accept = array('image/jpeg','image/png');
+			if(!in_array($_FILES['img']['type'],$accept)){
+				$err = "Image file type is invalid";
+				$resp['status'] = 'failed';
+				$resp['msg'] = $err;
+				return json_encode($resp);
+			}
+			
+			// Check if GD extension is available
+			if(!extension_loaded('gd')){
+				$resp['status'] = 'failed';
+				$resp['msg'] = 'GD extension is not enabled. Please enable GD extension in PHP to process images.';
+				return json_encode($resp);
+			}
+			
+			$uploadfile = null;
+			if($_FILES['img']['type'] == 'image/jpeg' && function_exists('imagecreatefromjpeg')){
+				$uploadfile = imagecreatefromjpeg($_FILES['img']['tmp_name']);
+			}elseif($_FILES['img']['type'] == 'image/png' && function_exists('imagecreatefrompng')){
+				$uploadfile = imagecreatefrompng($_FILES['img']['tmp_name']);
+			}
+			
+			if(!$uploadfile){
+				// Fallback: copy file without processing
+				if(move_uploaded_file($_FILES['img']['tmp_name'], base_app.$fname)){
+					if(isset($_SESSION['system_info']['logo'])){
+						$qry = $this->conn->query("UPDATE system_info set meta_value = CONCAT('{$fname}', '?v=',unix_timestamp(CURRENT_TIMESTAMP)) where meta_field = 'logo' ");
+						if(is_file(base_app.$_SESSION['system_info']['logo'])) unlink(base_app.$_SESSION['system_info']['logo']);
+					}else{
+						$qry = $this->conn->query("INSERT into system_info set meta_value = '{$fname}',meta_field = 'logo' ");
+					}
+				}else{
+					$err = "Failed to upload image";
+					$resp['status'] = 'failed';
+					$resp['msg'] = $err;
+					return json_encode($resp);
+				}
+			}else{
+				// Process image with GD
+				$temp = imagescale($uploadfile,200,200);
+				if(is_file(base_app.$fname))
+				unlink(base_app.$fname);
+				if($_FILES['img']['type'] == 'image/jpeg' && function_exists('imagejpeg')){
+					$upload =imagejpeg($temp,base_app.$fname);
+				}elseif($_FILES['img']['type'] == 'image/png' && function_exists('imagepng')){
+					$upload =imagepng($temp,base_app.$fname);
+				}else
+				$upload = false;
+				if($upload){
+					if(isset($_SESSION['system_info']['logo'])){
+						$qry = $this->conn->query("UPDATE system_info set meta_value = CONCAT('{$fname}', '?v=',unix_timestamp(CURRENT_TIMESTAMP)) where meta_field = 'logo' ");
+						if(is_file(base_app.$_SESSION['system_info']['logo'])) unlink(base_app.$_SESSION['system_info']['logo']);
+					}else{
+						$qry = $this->conn->query("INSERT into system_info set meta_value = '{$fname}',meta_field = 'logo' ");
+					}
+				}
+				imagedestroy($temp);
+			}
+		}
+		
+		$update = $this->update_system_info();
+		$flash = $this->set_flashdata('success','Logo Successfully Updated.');
+		if($update && $flash){
+			$resp['status'] = 'success';
+		}else{
+			$resp['status'] = 'failed';
+		}
+		return json_encode($resp);
+	}
+
+	function update_cover(){
+		if(!empty($_FILES['cover']['tmp_name'])){
+			$ext = pathinfo($_FILES['cover']['name'], PATHINFO_EXTENSION);
+			$fname = "uploads/cover-".(time()).".$ext";
+			$accept = array('image/jpeg','image/png');
+			if(!in_array($_FILES['cover']['type'],$accept)){
+				$err = "Image file type is invalid";
+				$resp['status'] = 'failed';
+				$resp['msg'] = $err;
+				return json_encode($resp);
+			}
+			
+			// Check if GD extension is available
+			if(!extension_loaded('gd')){
+				$resp['status'] = 'failed';
+				$resp['msg'] = 'GD extension is not enabled. Please enable GD extension in PHP to process images.';
+				return json_encode($resp);
+			}
+			
+			$uploadfile = null;
+			if($_FILES['cover']['type'] == 'image/jpeg' && function_exists('imagecreatefromjpeg')){
+				$uploadfile = imagecreatefromjpeg($_FILES['cover']['tmp_name']);
+			}elseif($_FILES['cover']['type'] == 'image/png' && function_exists('imagecreatefrompng')){
+				$uploadfile = imagecreatefrompng($_FILES['cover']['tmp_name']);
+			}
+			
+			if(!$uploadfile){
+				// Fallback: copy file without processing
+				if(move_uploaded_file($_FILES['cover']['tmp_name'], base_app.$fname)){
+					if(isset($_SESSION['system_info']['cover'])){
+						$qry = $this->conn->query("UPDATE system_info set meta_value = CONCAT('{$fname}', '?v=',unix_timestamp(CURRENT_TIMESTAMP)) where meta_field = 'cover' ");
+						if(is_file(base_app.$_SESSION['system_info']['cover'])) unlink(base_app.$_SESSION['system_info']['cover']);
+					}else{
+						$qry = $this->conn->query("INSERT into system_info set meta_value = '{$fname}',meta_field = 'cover' ");
+					}
+				}else{
+					$err = "Failed to upload image";
+					$resp['status'] = 'failed';
+					$resp['msg'] = $err;
+					return json_encode($resp);
+				}
+			}else{
+				// Process image with GD
+				list($width,$height) = getimagesize($_FILES['cover']['tmp_name']);
+				$temp = imagescale($uploadfile,$width,$height);
+				if(is_file(base_app.$fname))
+				unlink(base_app.$fname);
+				if($_FILES['cover']['type'] == 'image/jpeg' && function_exists('imagejpeg')){
+					$upload =imagejpeg($temp,base_app.$fname);
+				}elseif($_FILES['cover']['type'] == 'image/png' && function_exists('imagepng')){
+					$upload =imagepng($temp,base_app.$fname);
+				}else
+				$upload = false;
+				if($upload){
+					if(isset($_SESSION['system_info']['cover'])){
+						$qry = $this->conn->query("UPDATE system_info set meta_value = CONCAT('{$fname}', '?v=',unix_timestamp(CURRENT_TIMESTAMP)) where meta_field = 'cover' ");
+						if(is_file(base_app.$_SESSION['system_info']['cover'])) unlink(base_app.$_SESSION['system_info']['cover']);
+					}else{
+						$qry = $this->conn->query("INSERT into system_info set meta_value = '{$fname}',meta_field = 'cover' ");
+					}
+				}
+				imagedestroy($temp);
+			}
+		}
+		
+		$update = $this->update_system_info();
+		$flash = $this->set_flashdata('success','Cover Successfully Updated.');
+		if($update && $flash){
+			$resp['status'] = 'success';
+		}else{
+			$resp['status'] = 'failed';
+		}
+		return json_encode($resp);
+	}
+
+	function update_banners(){
+		if(isset($_FILES['banners']) && count($_FILES['banners']['tmp_name']) > 0){
+			$err='';
+			$banner_path = "uploads/banner/";
+			if(!is_dir(base_app.$banner_path))
+				mkdir(base_app.$banner_path);
+			
+			// Check if GD extension is available
+			if(!extension_loaded('gd')){
+				$resp['status'] = 'failed';
+				$resp['msg'] = 'GD extension is not enabled. Please enable GD extension in PHP to process images.';
+				return json_encode($resp);
+			}
+			
+			foreach($_FILES['banners']['tmp_name'] as $k => $v){
+				if(!empty($_FILES['banners']['tmp_name'][$k])){
+					$accept = array('image/jpeg','image/png');
+					if(!in_array($_FILES['banners']['type'][$k],$accept)){
+						$err = "Image file type is invalid";
+						break;
+					}
+					
+					$uploadfile = null;
+					if($_FILES['banners']['type'][$k] == 'image/jpeg' && function_exists('imagecreatefromjpeg')){
+						$uploadfile = imagecreatefromjpeg($_FILES['banners']['tmp_name'][$k]);
+					}elseif($_FILES['banners']['type'][$k] == 'image/png' && function_exists('imagecreatefrompng')){
+						$uploadfile = imagecreatefrompng($_FILES['banners']['tmp_name'][$k]);
+					}
+					
+					if(!$uploadfile){
+						// Fallback: copy file without processing
+						$spath = base_app.$banner_path.'/'.$_FILES['banners']['name'][$k];
+						$i = 1;
+						while(true){
+							if(is_file($spath)){
+								$spath = base_app.$banner_path.'/'.($i++).'_'.$_FILES['banners']['name'][$k];
+							}else{
+								break;
+							}
+						}
+						if(move_uploaded_file($_FILES['banners']['tmp_name'][$k], $spath)){
+							// File uploaded successfully without processing
+							continue;
+						}else{
+							$err = "Failed to upload image";
+							break;
+						}
+					}else{
+						// Process image with GD
+						$temp = imagescale($uploadfile,1200,400);
+						$spath = base_app.$banner_path.'/'.$_FILES['banners']['name'][$k];
+						$i = 1;
+						while(true){
+							if(is_file($spath)){
+								$spath = base_app.$banner_path.'/'.($i++).'_'.$_FILES['banners']['name'][$k];
+							}else{
+								break;
+							}
+						}
+						if($_FILES['banners']['type'][$k] == 'image/jpeg' && function_exists('imagejpeg')){
+							imagejpeg($temp,$spath);
+						}elseif($_FILES['banners']['type'][$k] == 'image/png' && function_exists('imagepng')){
+							imagepng($temp,$spath);
+						}
+						imagedestroy($temp);
+					}
+				}
+			}
+			if(!empty($err)){
+				$resp['status'] = 'failed';
+				$resp['msg'] = $err;
+				return json_encode($resp);
+			}
+		}
+		
+		$update = $this->update_system_info();
+		$flash = $this->set_flashdata('success','Banners Successfully Updated.');
+		if($update && $flash){
+			$resp['status'] = 'success';
+		}else{
+			$resp['status'] = 'failed';
+		}
+		return json_encode($resp);
+	}
+
 	function update_settings_info(){
 		$data = "";
 		foreach ($_POST as $key => $value) {
@@ -51,6 +358,9 @@ class SystemSettings extends DBConnection{
 			$accept = array('image/jpeg','image/png');
 			if(!in_array($_FILES['img']['type'],$accept)){
 				$err = "Image file type is invalid";
+				$resp['status'] = 'failed';
+				$resp['msg'] = $err;
+				return json_encode($resp);
 			}
 			if($_FILES['img']['type'] == 'image/jpeg')
 				$uploadfile = imagecreatefromjpeg($_FILES['img']['tmp_name']);
@@ -58,6 +368,9 @@ class SystemSettings extends DBConnection{
 				$uploadfile = imagecreatefrompng($_FILES['img']['tmp_name']);
 			if(!$uploadfile){
 				$err = "Image is invalid";
+				$resp['status'] = 'failed';
+				$resp['msg'] = $err;
+				return json_encode($resp);
 			}
 			$temp = imagescale($uploadfile,200,200);
 			if(is_file(base_app.$fname))
@@ -84,6 +397,9 @@ class SystemSettings extends DBConnection{
 			$accept = array('image/jpeg','image/png');
 			if(!in_array($_FILES['cover']['type'],$accept)){
 				$err = "Image file type is invalid";
+				$resp['status'] = 'failed';
+				$resp['msg'] = $err;
+				return json_encode($resp);
 			}
 			if($_FILES['cover']['type'] == 'image/jpeg')
 				$uploadfile = imagecreatefromjpeg($_FILES['cover']['tmp_name']);
@@ -91,6 +407,9 @@ class SystemSettings extends DBConnection{
 				$uploadfile = imagecreatefrompng($_FILES['cover']['tmp_name']);
 			if(!$uploadfile){
 				$err = "Image is invalid";
+				$resp['status'] = 'failed';
+				$resp['msg'] = $err;
+				return json_encode($resp);
 			}
 			list($width,$height) = getimagesize($_FILES['cover']['tmp_name']);
 			$temp = imagescale($uploadfile,$width,$height);
@@ -230,12 +549,29 @@ $_settings = new SystemSettings();
 $_settings->load_system_info();
 $action = !isset($_GET['f']) ? 'none' : strtolower($_GET['f']);
 $sysset = new SystemSettings();
-switch ($action) {
-	case 'update_settings':
-		echo $sysset->update_settings_info();
-		break;
-	default:
-		// echo $sysset->index();
-		break;
-}
+	switch ($action) {
+		case 'update_settings':
+			echo $sysset->update_settings_info();
+			break;
+		case 'update_basic_info':
+			echo $sysset->update_basic_info();
+			break;
+		case 'update_logo':
+			// Check if GD is available, use simple version if not
+			if(extension_loaded('gd')){
+				echo $sysset->update_logo();
+			}else{
+				echo $sysset->update_logo_simple();
+			}
+			break;
+		case 'update_cover':
+			echo $sysset->update_cover();
+			break;
+		case 'update_banners':
+			echo $sysset->update_banners();
+			break;
+		default:
+			// echo $sysset->index();
+			break;
+	}
 ?>

@@ -256,17 +256,14 @@
                                         <label for="subject" class="form-label fw-bold mb-2">
                                             <i class="fas fa-tag me-2"></i>Subject *
                                         </label>
-                                        <select class="form-control form-control-modern" name="subject" id="subject" required>
-                                            <option value="">Select a subject</option>
-                                            <option value="general">General Inquiry</option>
-                                            <option value="tracking">Tracking Support</option>
-                                            <option value="billing">Billing Question</option>
-                                            <option value="technical">Technical Support</option>
-                                            <option value="partnership">Partnership</option>
-                                            <option value="other">Other</option>
-                                        </select>
+                                        <input type="text" 
+                                               class="form-control form-control-modern" 
+                                               name="subject" 
+                                               id="subject"
+                                               placeholder="Enter your subject"
+                                               required>
                                         <div class="invalid-feedback">
-                                            Please select a subject.
+                                            Please provide a subject.
                                         </div>
                                     </div>
                                 </div>
@@ -487,21 +484,58 @@
                 $btn.html('<i class="fas fa-spinner fa-spin me-2"></i>Sending...');
                 $btn.prop('disabled', true);
                 
-                // Simulate form submission (replace with actual AJAX call)
-                setTimeout(function() {
-                    // Show success message
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Message Sent!',
-                        text: 'Thank you for contacting us. We\'ll get back to you within 24 hours.',
-                        confirmButtonText: 'OK'
-                    });
-                    
-                    // Reset form
-                    form[0].reset();
-                    $btn.html(originalText);
-                    $btn.prop('disabled', false);
-                }, 2000);
+                // Get form data
+                var formData = {
+                    name: $('#name').val().trim(),
+                    email: $('#email').val().trim(),
+                    phone: $('#phone').val().trim(),
+                    subject: $('#subject').val().trim(),
+                    message: $('#message').val().trim()
+                };
+                
+                // Send AJAX request
+                $.ajax({
+                    url: 'contact_handler.php',
+                    type: 'POST',
+                    data: formData,
+                    dataType: 'json',
+                    success: function(response) {
+                        if(response.success) {
+                            // Show success message
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Message Sent!',
+                                text: response.message,
+                                confirmButtonText: 'OK'
+                            });
+                            
+                            // Reset form
+                            form[0].reset();
+                        } else {
+                            // Show error message
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message,
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // Show error message
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to send message. Please try again later.',
+                            confirmButtonText: 'OK'
+                        });
+                    },
+                    complete: function() {
+                        // Reset button state
+                        $btn.html(originalText);
+                        $btn.prop('disabled', false);
+                    }
+                });
             }
         });
         

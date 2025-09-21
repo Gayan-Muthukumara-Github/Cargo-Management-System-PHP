@@ -27,75 +27,121 @@
 			</div> -->
 		</div>
 		<div class="card-body">
-			<form action="" id="system-frm">
-				<div id="msg" class="form-group"></div>
-				<div class="form-group">
-					<label for="name" class="control-label">System Name</label>
-					<input type="text" class="form-control form-control-sm" name="name" id="name" value="<?php echo $_settings->info('name') ?>">
-				</div>
-				<div class="form-group">
-					<label for="short_name" class="control-label">System Short Name</label>
-					<input type="text" class="form-control form-control-sm" name="short_name" id="short_name" value="<?php echo  $_settings->info('short_name') ?>">
-				</div>
-			<div class="form-group">
-				<label for="" class="control-label">Welcome Content</label>
-	             <textarea name="content[welcome]" id="" cols="30" rows="2" class="form-control summernote"><?php echo  is_file(base_app.'welcome.html') ? file_get_contents(base_app.'welcome.html') : "" ?></textarea>
-			</div>
-			<div class="form-group">
-				<label for="" class="control-label">About Us</label>
-	             <textarea name="content[about]" id="" cols="30" rows="2" class="form-control summernote"><?php echo  is_file(base_app.'about.html') ? file_get_contents(base_app.'about.html') : "" ?></textarea>
-			</div>
+			<div id="msg" class="form-group"></div>
 			
-			<div class="form-group">
-				<label for="" class="control-label">System Logo</label>
-				<div class="custom-file">
-	              <input type="file" class="custom-file-input rounded-circle" id="customFile" name="img" onchange="displayImg(this,$(this))">
-	              <label class="custom-file-label" for="customFile">Choose file</label>
-	            </div>
+			<!-- Section 1: Basic Information -->
+			<div class="card card-outline rounded-0 card-info mb-3">
+				<div class="card-header">
+					<h6 class="card-title">Basic Information</h6>
+				</div>
+				<div class="card-body">
+					<form action="" id="basic-info-frm" method="POST">
+						<div class="form-group">
+							<label for="name" class="control-label">System Name</label>
+							<input type="text" class="form-control form-control-sm" name="name" id="name" value="<?php echo $_settings->info('name') ?>">
+						</div>
+						<div class="form-group">
+							<label for="short_name" class="control-label">System Short Name</label>
+							<input type="text" class="form-control form-control-sm" name="short_name" id="short_name" value="<?php echo  $_settings->info('short_name') ?>">
+						</div>
+						<div class="form-group">
+							<label for="" class="control-label">Welcome Content</label>
+							<textarea name="content[welcome]" id="welcome_content" cols="30" rows="2" class="form-control summernote"><?php echo  is_file(base_app.'welcome.html') ? file_get_contents(base_app.'welcome.html') : "" ?></textarea>
+						</div>
+						<div class="form-group">
+							<label for="" class="control-label">About Us</label>
+							<textarea name="content[about]" id="about_content" cols="30" rows="2" class="form-control summernote"><?php echo  is_file(base_app.'about.html') ? file_get_contents(base_app.'about.html') : "" ?></textarea>
+						</div>
+						<div class="form-group text-right">
+							<button class="btn btn-sm btn-info" type="submit">Update Basic Info</button>
+						</div>
+					</form>
+				</div>
 			</div>
-			<div class="form-group d-flex justify-content-center">
-				<img src="<?php echo validate_image($_settings->info('logo')) ?>" alt="" id="cimg" class="img-fluid img-thumbnail">
+
+			<!-- Section 2: System Logo -->
+			<div class="card card-outline rounded-0 card-warning mb-3">
+				<div class="card-header">
+					<h6 class="card-title">System Logo</h6>
+				</div>
+				<div class="card-body">
+					<form action="" id="logo-frm" method="POST" enctype="multipart/form-data">
+						<div class="form-group">
+							<label for="" class="control-label">System Logo</label>
+							<div class="custom-file">
+								<input type="file" class="custom-file-input rounded-circle" id="customFile1" name="img" onchange="displayImg(this,$(this))">
+								<label class="custom-file-label" for="customFile1">Choose file</label>
+							</div>
+						</div>
+						<div class="form-group d-flex justify-content-center">
+							<img src="<?php echo validate_image($_settings->info('logo')) ?>" alt="" id="cimg" class="img-fluid img-thumbnail">
+						</div>
+						<div class="form-group text-right">
+							<button class="btn btn-sm btn-warning" type="submit">Update Logo</button>
+						</div>
+					</form>
+				</div>
 			</div>
-			<div class="form-group">
-				<label for="" class="control-label">Website Cover</label>
-				<div class="custom-file">
-	              <input type="file" class="custom-file-input rounded-circle" id="customFile" name="cover" onchange="displayImg2(this,$(this))">
-	              <label class="custom-file-label" for="customFile">Choose file</label>
-	            </div>
+
+			<!-- Section 3: Website Cover -->
+			<div class="card card-outline rounded-0 card-success mb-3">
+				<div class="card-header">
+					<h6 class="card-title">Website Cover</h6>
+				</div>
+				<div class="card-body">
+					<form action="" id="cover-frm" method="POST" enctype="multipart/form-data">
+						<div class="form-group">
+							<label for="" class="control-label">Website Cover</label>
+							<div class="custom-file">
+								<input type="file" class="custom-file-input rounded-circle" id="customFile2" name="cover" onchange="displayImg2(this,$(this))">
+								<label class="custom-file-label" for="customFile2">Choose file</label>
+							</div>
+						</div>
+						<div class="form-group d-flex justify-content-center">
+							<img src="<?php echo validate_image($_settings->info('cover')) ?>" alt="" id="cimg2" class="img-fluid img-thumbnail">
+						</div>
+						<div class="form-group text-right">
+							<button class="btn btn-sm btn-success" type="submit">Update Cover</button>
+						</div>
+					</form>
+				</div>
 			</div>
-			<div class="form-group d-flex justify-content-center">
-				<img src="<?php echo validate_image($_settings->info('cover')) ?>" alt="" id="cimg2" class="img-fluid img-thumbnail">
-			</div>
-			<div class="form-group">
-				<label for="" class="control-label">Banner Images</label>
-				<div class="custom-file">
-	              <input type="file" class="custom-file-input rounded-circle" id="customFile" name="banners[]" multiple accept=".png,.jpg,.jpeg" onchange="displayImg3(this,$(this))">
-	              <label class="custom-file-label" for="customFile">Choose file</label>
-	            </div>
-				<small><i>Choose to upload new banner immages</i></small>
-			</div>
-			<?php 
-            $upload_path = "uploads/banner";
-            if(is_dir(base_app.$upload_path)): 
-			$file= scandir(base_app.$upload_path);
-                foreach($file as $img):
-                    if(in_array($img,array('.','..')))
-                        continue;
-                    
-                
-            ?>
-                <div class="d-flex w-100 align-items-center img-item">
-                    <span><img src="<?php echo base_url.$upload_path.'/'.$img."?v=".(time()) ?>" width="150px" height="100px" style="object-fit:cover;" class="img-thumbnail" alt=""></span>
-                    <span class="ml-4"><button class="btn btn-sm btn-default text-danger rem_img" type="button" data-path="<?php echo base_app.$upload_path.'/'.$img ?>"><i class="fa fa-trash"></i></button></span>
-                </div>
-            <?php endforeach; ?>
-            <?php endif; ?>
-			</form>
-		</div>
-		<div class="card-footer">
-			<div class="col-md-12">
-				<div class="row">
-					<button class="btn btn-sm btn-primary" form="system-frm">Update</button>
+
+			<!-- Section 4: Banner Images -->
+			<div class="card card-outline rounded-0 card-secondary mb-3">
+				<div class="card-header">
+					<h6 class="card-title">Banner Images</h6>
+				</div>
+				<div class="card-body">
+					<form action="" id="banners-frm" method="POST" enctype="multipart/form-data">
+						<div class="form-group">
+							<label for="" class="control-label">Banner Images</label>
+							<div class="custom-file">
+								<input type="file" class="custom-file-input rounded-circle" id="customFile3" name="banners[]" multiple accept=".png,.jpg,.jpeg" onchange="displayImg3(this,$(this))">
+								<label class="custom-file-label" for="customFile3">Choose file</label>
+							</div>
+							<small><i>Choose to upload new banner images</i></small>
+						</div>
+						<div class="form-group text-right">
+							<button class="btn btn-sm btn-secondary" type="submit">Update Banners</button>
+						</div>
+					</form>
+					
+					<!-- Existing Banner Images -->
+					<?php 
+					$upload_path = "uploads/banner";
+					if(is_dir(base_app.$upload_path)): 
+					$file= scandir(base_app.$upload_path);
+						foreach($file as $img):
+							if(in_array($img,array('.','..')))
+								continue;
+					?>
+						<div class="d-flex w-100 align-items-center img-item">
+							<span><img src="<?php echo base_url.$upload_path.'/'.$img."?v=".(time()) ?>" width="150px" height="100px" style="object-fit:cover;" class="img-thumbnail" alt=""></span>
+							<span class="ml-4"><button class="btn btn-sm btn-default text-danger rem_img" type="button" data-path="<?php echo base_app.$upload_path.'/'.$img ?>"><i class="fa fa-trash"></i></button></span>
+						</div>
+					<?php endforeach; ?>
+					<?php endif; ?>
 				</div>
 			</div>
 		</div>
@@ -179,5 +225,130 @@
 		            [ 'view', [ 'undo', 'redo', 'fullscreen', 'codeview', 'help' ] ]
 		        ]
 		    })
+
+		// Basic Information Form Handler
+		$('#basic-info-frm').submit(function(e) {
+			e.preventDefault()
+			start_loader()
+			if ($('.err_msg').length > 0)
+				$('.err_msg').remove()
+			$.ajax({
+				url: _base_url_ + 'classes/SystemSettings.php?f=update_basic_info',
+				data: new FormData($(this)[0]),
+				cache: false,
+				contentType: false,
+				processData: false,
+				method: 'POST',
+				type: 'POST',
+				dataType: 'json',
+				success: function(resp) {
+					if (resp.status == 'success') {
+						alert_toast("Basic Information updated successfully",'success')
+					} else if (resp.status == 'failed' && !!resp.msg) {
+						$('#msg').html('<div class="alert alert-danger err_msg">' + resp.msg + '</div>')
+						$("html, body").animate({ scrollTop: 0 }, "fast");
+					} else {
+						$('#msg').html('<div class="alert alert-danger err_msg">An Error occured</div>')
+					}
+					end_loader()
+				}
+			})
+		})
+
+		// Logo Form Handler
+		$('#logo-frm').submit(function(e) {
+			e.preventDefault()
+			start_loader()
+			if ($('.err_msg').length > 0)
+				$('.err_msg').remove()
+			$.ajax({
+				url: _base_url_ + 'classes/SystemSettings.php?f=update_logo',
+				data: new FormData($(this)[0]),
+				cache: false,
+				contentType: false,
+				processData: false,
+				method: 'POST',
+				type: 'POST',
+				dataType: 'json',
+				success: function(resp) {
+					if (resp.status == 'success') {
+						alert_toast("Logo updated successfully",'success')
+						setTimeout(function(){
+							location.reload()
+						}, 1500)
+					} else if (resp.status == 'failed' && !!resp.msg) {
+						$('#msg').html('<div class="alert alert-danger err_msg">' + resp.msg + '</div>')
+						$("html, body").animate({ scrollTop: 0 }, "fast");
+					} else {
+						$('#msg').html('<div class="alert alert-danger err_msg">An Error occured</div>')
+					}
+					end_loader()
+				}
+			})
+		})
+
+		// Cover Form Handler
+		$('#cover-frm').submit(function(e) {
+			e.preventDefault()
+			start_loader()
+			if ($('.err_msg').length > 0)
+				$('.err_msg').remove()
+			$.ajax({
+				url: _base_url_ + 'classes/SystemSettings.php?f=update_cover',
+				data: new FormData($(this)[0]),
+				cache: false,
+				contentType: false,
+				processData: false,
+				method: 'POST',
+				type: 'POST',
+				dataType: 'json',
+				success: function(resp) {
+					if (resp.status == 'success') {
+						alert_toast("Cover updated successfully",'success')
+						setTimeout(function(){
+							location.reload()
+						}, 1500)
+					} else if (resp.status == 'failed' && !!resp.msg) {
+						$('#msg').html('<div class="alert alert-danger err_msg">' + resp.msg + '</div>')
+						$("html, body").animate({ scrollTop: 0 }, "fast");
+					} else {
+						$('#msg').html('<div class="alert alert-danger err_msg">An Error occured</div>')
+					}
+					end_loader()
+				}
+			})
+		})
+
+		// Banners Form Handler
+		$('#banners-frm').submit(function(e) {
+			e.preventDefault()
+			start_loader()
+			if ($('.err_msg').length > 0)
+				$('.err_msg').remove()
+			$.ajax({
+				url: _base_url_ + 'classes/SystemSettings.php?f=update_banners',
+				data: new FormData($(this)[0]),
+				cache: false,
+				contentType: false,
+				processData: false,
+				method: 'POST',
+				type: 'POST',
+				dataType: 'json',
+				success: function(resp) {
+					if (resp.status == 'success') {
+						alert_toast("Banners updated successfully",'success')
+						setTimeout(function(){
+							location.reload()
+						}, 1500)
+					} else if (resp.status == 'failed' && !!resp.msg) {
+						$('#msg').html('<div class="alert alert-danger err_msg">' + resp.msg + '</div>')
+						$("html, body").animate({ scrollTop: 0 }, "fast");
+					} else {
+						$('#msg').html('<div class="alert alert-danger err_msg">An Error occured</div>')
+					}
+					end_loader()
+				}
+			})
+		})
 	})
 </script>

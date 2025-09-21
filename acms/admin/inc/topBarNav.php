@@ -165,41 +165,10 @@
     </li>
   </ul>
   
-  <!-- Center Search -->
-  <div class="navbar-search d-none d-md-block">
-    <i class="fas fa-search search-icon"></i>
-    <input type="text" class="search-input" placeholder="Search shipments, users..." id="globalSearch">
-  </div>
+
   
   <!-- Right navbar links -->
   <ul class="navbar-nav ms-auto">
-    <!-- Notifications -->
-    <li class="nav-item dropdown">
-      <a class="nav-link" href="#" data-toggle="dropdown">
-        <i class="fas fa-bell"></i>
-        <span class="badge badge-warning">3</span>
-      </a>
-      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-        <span class="dropdown-item dropdown-header">3 Notifications</span>
-        <div class="dropdown-divider"></div>
-        <a href="#" class="dropdown-item">
-          <i class="fas fa-truck me-2"></i> New shipment created
-          <span class="float-right text-muted text-sm">3 mins</span>
-        </a>
-        <div class="dropdown-divider"></div>
-        <a href="#" class="dropdown-item">
-          <i class="fas fa-check me-2"></i> Shipment delivered
-          <span class="float-right text-muted text-sm">1 hour</span>
-        </a>
-        <div class="dropdown-divider"></div>
-        <a href="#" class="dropdown-item">
-          <i class="fas fa-exclamation me-2"></i> System update available
-          <span class="float-right text-muted text-sm">2 hours</span>
-        </a>
-        <div class="dropdown-divider"></div>
-        <a href="#" class="dropdown-item dropdown-footer">See All Notifications</a>
-      </div>
-    </li>
     
     <!-- User Dropdown -->
     <li class="nav-item dropdown user-dropdown">
