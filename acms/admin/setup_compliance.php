@@ -1,13 +1,13 @@
 <?php
-require_once('../../config.php');
-require_once('../inc/sess_auth.php');
+require_once('../config.php');
+require_once('inc/sess_auth.php');
 
-if(!isset($_settings) || $_settings->userdata('type') != 1){
+if(!isset($_settings) || $_settings->userdata('login_type') != 1){
     die('Access denied');
 }
 
-// Read and execute the compliance schema
-$schema_file = '../../database/compliance_schema.sql';
+// Deprecated: schema is optional in simple mode
+$schema_file = '../database/compliance_schema.sql';
 if (file_exists($schema_file)) {
     $sql = file_get_contents($schema_file);
     

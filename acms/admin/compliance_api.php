@@ -1,11 +1,11 @@
 <?php
-require_once('../../config.php');
-require_once('../inc/sess_auth.php');
-require_once('../../classes/ComplianceValidator.php');
+require_once('../config.php');
+require_once('inc/sess_auth.php');
+require_once('../classes/ComplianceValidator.php');
 
 header('Content-Type: application/json');
 
-if(!isset($_settings) || $_settings->userdata('type') != 1){
+if(!isset($_settings) || $_settings->userdata('login_type') != 1){
     http_response_code(403);
     echo json_encode(['error' => 'Forbidden']);
     exit;
@@ -13,55 +13,44 @@ if(!isset($_settings) || $_settings->userdata('type') != 1){
 
 $action = $_REQUEST['action'] ?? '';
 
+// Fallback helper for environments without mysqlnd (no get_result)
+function stmt_fetch_all_assoc($stmt){
+    if (method_exists($stmt, 'get_result')) {
+        $result = $stmt->get_result();
+        $rows = [];
+        while ($row = $result->fetch_assoc()) $rows[] = $row;
+        return $rows;
+    }
+    $meta = $stmt->result_metadata();
+    if (!$meta) return [];
+    $fields = [];
+    $rowRefs = [];
+    while ($field = $meta->fetch_field()) {
+        $fields[] = $field->name;
+        $rowRefs[$field->name] = null;
+    }
+    $bind = [];
+    foreach ($fields as $name) {
+        $bind[] = & $rowRefs[$name];
+    }
+    call_user_func_array([$stmt, 'bind_result'], $bind);
+    $data = [];
+    while ($stmt->fetch()) {
+        $row = [];
+        foreach ($fields as $name) $row[$name] = $rowRefs[$name];
+        $data[] = $row;
+    }
+    return $data;
+}
+
 switch($action) {
     case 'get_violations':
         $severity = $_GET['severity'] ?? '';
         $status = $_GET['status'] ?? '';
         $cargo_ref = $_GET['cargo_ref'] ?? '';
         
-        $where_conditions = [];
-        $params = [];
-        $types = '';
-        
-        if ($severity !== '') {
-            $where_conditions[] = "cv.severity = ?";
-            $params[] = $severity;
-            $types .= 's';
-        }
-        
-        if ($status !== '') {
-            $where_conditions[] = "cv.status = ?";
-            $params[] = $status;
-            $types .= 's';
-        }
-        
-        if ($cargo_ref !== '') {
-            $where_conditions[] = "cl.ref_code LIKE ?";
-            $params[] = '%' . $cargo_ref . '%';
-            $types .= 's';
-        }
-        
-        $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
-        
-        $sql = "SELECT cv.*, cl.ref_code as cargo_ref
-                FROM compliance_violations cv
-                LEFT JOIN cargo_list cl ON cl.id = cv.cargo_id
-                $where_clause
-                ORDER BY cv.date_created DESC
-                LIMIT 100";
-        
-        $stmt = $conn->prepare($sql);
-        if (!empty($params)) {
-            $stmt->bind_param($types, ...$params);
-        }
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        $violations = [];
-        while ($row = $result->fetch_assoc()) {
-            $violations[] = $row;
-        }
-        
+        $validator = new ComplianceValidator();
+        $violations = $validator->getSimpleViolations($severity, $status, $cargo_ref);
         echo json_encode(['data' => $violations]);
         break;
         
@@ -124,11 +113,11 @@ switch($action) {
             $cargo_stmt = $conn->prepare($cargo_sql);
             $cargo_stmt->bind_param("i", $approval_id);
             $cargo_stmt->execute();
-            $cargo_result = $cargo_stmt->get_result();
-            
-            if ($cargo_row = $cargo_result->fetch_assoc()) {
+            // Fallback-compatible fetch for single column
+            $cargo_stmt->bind_result($cargo_id_val);
+            if ($cargo_stmt->fetch()) {
                 $validator = new ComplianceValidator();
-                $validator->validateCargo($cargo_row['cargo_id']);
+                $validator->validateCargo($cargo_id_val);
             }
             
             echo json_encode(['status' => 'success', 'message' => 'Approval granted']);
@@ -173,6 +162,29 @@ switch($action) {
         
         echo json_encode(['status' => 'success', 'data' => $result]);
         break;
+
+    case 'validate_cargo_by_ref':
+        $cargo_ref = trim($_POST['cargo_ref'] ?? '');
+        if ($cargo_ref === '') {
+            echo json_encode(['status' => 'error', 'message' => 'Cargo reference is required']);
+            break;
+        }
+        $sql = "SELECT id FROM cargo_list WHERE ref_code = ? LIMIT 1";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('s', $cargo_ref);
+        if (!$stmt->execute()) {
+            echo json_encode(['status' => 'error', 'message' => 'Lookup failed']);
+            break;
+        }
+        $stmt->bind_result($cargo_id_val);
+        if (!$stmt->fetch()) {
+            echo json_encode(['status' => 'error', 'message' => 'Cargo not found']);
+            break;
+        }
+        $validator = new ComplianceValidator();
+        $result = $validator->validateCargo($cargo_id_val);
+        echo json_encode(['status' => 'success', 'data' => $result, 'cargo_id' => $cargo_id_val]);
+        break;
         
     case 'get_compliance_rules':
         $sql = "SELECT * FROM compliance_rules WHERE is_active = 1 ORDER BY rule_type, rule_name";
@@ -211,6 +223,12 @@ switch($action) {
         $expired = $validator->checkExpiredPerishables();
         
         echo json_encode(['status' => 'success', 'data' => $expired]);
+        break;
+    
+    case 'recompute_compliance_statuses':
+        $validator = new ComplianceValidator();
+        $count = $validator->recomputeAllComplianceStatusesSimple();
+        echo json_encode(['status' => 'success', 'updated' => $count]);
         break;
         
     default:

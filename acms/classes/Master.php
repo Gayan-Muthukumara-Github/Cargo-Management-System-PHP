@@ -105,7 +105,33 @@ Class Master extends DBConnection {
 			$_POST['ref_code'] = $pref.$code;
 		}
 		extract($_POST);
-		$cargo_allowed_statuss = ["ref_code","shipping_type","total_amount","status"];
+		// Ensure checkbox flags post defaults when unchecked
+		$_POST['is_perishable'] = isset($_POST['is_perishable']) ? (int)!!$_POST['is_perishable'] : 0;
+		$_POST['is_hazardous'] = isset($_POST['is_hazardous']) ? (int)!!$_POST['is_hazardous'] : 0;
+		$_POST['special_handling_required'] = isset($_POST['special_handling_required']) ? (int)!!$_POST['special_handling_required'] : 0;
+		// Normalize numeric fields
+		$_POST['weight_kg'] = isset($_POST['weight_kg']) && $_POST['weight_kg'] !== '' ? (float)$_POST['weight_kg'] : 0;
+		$_POST['length_cm'] = isset($_POST['length_cm']) && $_POST['length_cm'] !== '' ? (int)$_POST['length_cm'] : 0;
+		$_POST['width_cm'] = isset($_POST['width_cm']) && $_POST['width_cm'] !== '' ? (int)$_POST['width_cm'] : 0;
+		$_POST['height_cm'] = isset($_POST['height_cm']) && $_POST['height_cm'] !== '' ? (int)$_POST['height_cm'] : 0;
+		$_POST['max_storage_hours'] = isset($_POST['max_storage_hours']) && $_POST['max_storage_hours'] !== '' ? (int)$_POST['max_storage_hours'] : null;
+		// Auto-set storage_start_time if perishable and not provided
+		if((int)$_POST['is_perishable'] === 1){
+			if(empty($_POST['storage_start_time'])){
+				$_POST['storage_start_time'] = date('Y-m-d H:i:s');
+			}
+		}else{
+			// If not perishable, clear storage start time and max hours to avoid stale data
+			$_POST['storage_start_time'] = null;
+			if(isset($_POST['max_storage_hours']) && $_POST['max_storage_hours'] === '') $_POST['max_storage_hours'] = null;
+		}
+		
+		// Fields to be stored directly in cargo_list
+		$cargo_allowed_statuss = [
+			"ref_code","shipping_type","total_amount","status",
+			"is_hazardous","is_perishable","storage_start_time","max_storage_hours",
+			"weight_kg","length_cm","width_cm","height_cm","special_handling_required"
+		];
 		$data = "";
 		foreach($_POST as $k =>$v){
 			if(in_array($k,$cargo_allowed_statuss)){
@@ -121,6 +147,8 @@ Class Master extends DBConnection {
 		$save = $this->conn->query($sql);
 		if($save){
 			$cid = empty($id) ? $this->conn->insert_id : $id;
+			// Run compliance validation and create records
+			$this->validateCargoCompliance($cid);
 			$resp['cid'] = $cid;
 			if(empty($id))
 				$resp['msg'] = " New Smart Phone successfully added.";
@@ -247,32 +275,235 @@ Class Master extends DBConnection {
 	/**
 	 * Dynamic Storage Allocation
 	 */
-	private function get_cargo_profile($cargo_id){
-		// Derive profile from existing tables without requiring extra meta fields
-		$profile = [
-			'type' => 'any',
-			'weight' => 0,
-			'length_cm' => 0,
-			'width_cm' => 0,
-			'height_cm' => 0,
-			'priority' => 'normal',
-			'refrigerated' => 0,
-			'hazardous' => 0
-		];
-		$wq = $this->conn->query("SELECT COALESCE(SUM(weight),0) AS total_weight FROM cargo_items WHERE cargo_id='{$cargo_id}'");
-		if($wq && $wq->num_rows){
-			$profile['weight'] = (float)$wq->fetch_assoc()['total_weight'];
-		}
-		// Derive perishable/hazardous needs from selected cargo types
-		$tq = $this->conn->query("SELECT ct.is_perishable, ct.is_hazardous FROM cargo_items ci INNER JOIN cargo_type_list ct ON ct.id = ci.cargo_type_id WHERE ci.cargo_id='{$cargo_id}'");
-		$need_ref = 0; $need_haz = 0;
-		while($tq && $row = $tq->fetch_assoc()){
-			$need_ref = $need_ref || (int)$row['is_perishable'] ? 1 : 0;
-			$need_haz = $need_haz || (int)$row['is_hazardous'] ? 1 : 0;
-		}
-		$profile['refrigerated'] = $need_ref;
-		$profile['hazardous'] = $need_haz;
+    private function get_cargo_profile($cargo_id){
+        // Derive profile from cargo_list row + cargo items
+        $profile = [
+            'type' => 'any',
+            'weight' => 0,
+            'length_cm' => 0,
+            'width_cm' => 0,
+            'height_cm' => 0,
+            'priority' => 'normal',
+            'refrigerated' => 0,
+            'hazardous' => 0
+        ];
+
+        // Pull shipment-level flags and dimensions
+        $cq = $this->conn->query("SELECT is_perishable, is_hazardous, weight_kg, length_cm, width_cm, height_cm FROM cargo_list WHERE id='{$cargo_id}' LIMIT 1");
+        if($cq && $cq->num_rows){
+            $C = $cq->fetch_assoc();
+            $profile['weight'] = isset($C['weight_kg']) ? (float)$C['weight_kg'] : 0;
+            $profile['length_cm'] = isset($C['length_cm']) ? (int)$C['length_cm'] : 0;
+            $profile['width_cm'] = isset($C['width_cm']) ? (int)$C['width_cm'] : 0;
+            $profile['height_cm'] = isset($C['height_cm']) ? (int)$C['height_cm'] : 0;
+            $lvl_perishable = (int)($C['is_perishable'] ?? 0);
+            $lvl_hazardous = (int)($C['is_hazardous'] ?? 0);
+        } else {
+            $lvl_perishable = 0; $lvl_hazardous = 0;
+        }
+
+        // Derive perishable/hazardous from selected cargo types
+        $tq = $this->conn->query("SELECT ct.is_perishable, ct.is_hazardous FROM cargo_items ci INNER JOIN cargo_type_list ct ON ct.id = ci.cargo_type_id WHERE ci.cargo_id='{$cargo_id}'");
+        $need_ref = 0; $need_haz = 0;
+        while($tq && $row = $tq->fetch_assoc()){
+            $need_ref = $need_ref || ((int)$row['is_perishable'] === 1) ? 1 : $need_ref;
+            $need_haz = $need_haz || ((int)$row['is_hazardous'] === 1) ? 1 : $need_haz;
+        }
+
+        // Combine shipment-level and item-derived flags
+        $is_hazardous = ($lvl_hazardous === 1) || ($need_haz === 1) ? 1 : 0;
+        $is_perishable = ($lvl_perishable === 1) || ($need_ref === 1) ? 1 : 0;
+
+        // Prioritize type: hazardous > perishable > any
+        if($is_hazardous){
+            $profile['type'] = 'hazardous';
+            $profile['hazardous'] = 1;
+            $profile['refrigerated'] = $is_perishable ? 1 : 0; // may be both
+        } elseif($is_perishable){
+            $profile['type'] = 'perishable';
+            $profile['refrigerated'] = 1;
+            $profile['hazardous'] = 0;
+        } else {
+            $profile['type'] = 'any';
+            $profile['refrigerated'] = 0;
+            $profile['hazardous'] = 0;
+        }
+
+        // Log profile for debugging/traceability
+        try{
+            $log_dir = base_app.'logs';
+            if(!is_dir($log_dir)) @mkdir($log_dir,0777,true);
+            $log_path = $log_dir.'/cargo_profile.log';
+            $log_line = '['.date('Y-m-d H:i:s')."] cargo_id={$cargo_id} profile=".json_encode($profile)."\n";
+            @file_put_contents($log_path, $log_line, FILE_APPEND | LOCK_EX);
+        }catch(Exception $e){
+            // ignore logging errors
+        }
+
 		return $profile;
+	}
+
+	/**
+	 * Insert or update compliance check record
+	 */
+	private function insertComplianceCheck($cargo_id, $check_type, $check_status, $check_details, $checked_by = null) {
+		$sql = "INSERT INTO compliance_checks (cargo_id, check_type, check_status, check_details, checked_by) VALUES (?, ?, ?, ?, ?)";
+		$stmt = $this->conn->prepare($sql);
+		$stmt->bind_param("isssi", $cargo_id, $check_type, $check_status, $check_details, $checked_by);
+		return $stmt->execute();
+	}
+
+	/**
+	 * Insert or update compliance violation record
+	 */
+	private function insertComplianceViolation($cargo_id, $rule_id, $violation_type, $violation_message, $severity = 'medium') {
+		$sql = "INSERT INTO compliance_violations (cargo_id, rule_id, violation_type, violation_message, severity) VALUES (?, ?, ?, ?, ?)";
+		$stmt = $this->conn->prepare($sql);
+		$stmt->bind_param("iisss", $cargo_id, $rule_id, $violation_type, $violation_message, $severity);
+		return $stmt->execute();
+	}
+
+	/**
+	 * Insert or update hazardous approval record
+	 */
+	private function insertHazardousApproval($cargo_id, $approval_type, $document_path = null, $expires_at = null) {
+		$sql = "INSERT INTO hazardous_approvals (cargo_id, approval_type, document_path, expires_at) VALUES (?, ?, ?, ?)";
+		$stmt = $this->conn->prepare($sql);
+		$stmt->bind_param("isss", $cargo_id, $approval_type, $document_path, $expires_at);
+		return $stmt->execute();
+	}
+
+	/**
+	 * Get compliance rule by type
+	 */
+	private function getComplianceRule($rule_type) {
+		$sql = "SELECT * FROM compliance_rules WHERE rule_type = ? AND is_active = 1 LIMIT 1";
+		$stmt = $this->conn->prepare($sql);
+		$stmt->bind_param("s", $rule_type);
+		$stmt->execute();
+		$result = $stmt->get_result();
+		return $result->fetch_assoc();
+	}
+
+	/**
+	 * Validate cargo compliance and create records
+	 */
+	private function validateCargoCompliance($cargo_id) {
+		$profile = $this->get_cargo_profile($cargo_id);
+		$violations = [];
+		$warnings = [];
+		
+		// Get cargo data for validation
+		$cargo_qry = $this->conn->query("SELECT * FROM cargo_list WHERE id = '{$cargo_id}'");
+		$cargo_data = $cargo_qry->fetch_assoc();
+		
+		// Weight validation
+		if ($profile['weight'] > 0) {
+			$weight_rule = $this->getComplianceRule('weight_limit');
+			if ($weight_rule) {
+				$config = json_decode($weight_rule['rule_value'], true);
+				$max_weight = $config['max_weight_kg'] ?? 1000;
+				$warning_weight = $config['warning_weight_kg'] ?? 800;
+				
+				if ($profile['weight'] > $max_weight) {
+					$violations[] = [
+						'rule_id' => $weight_rule['id'],
+						'type' => 'weight_limit',
+						'message' => "Weight ({$profile['weight']}kg) exceeds maximum limit ({$max_weight}kg)",
+						'severity' => 'high'
+					];
+				} elseif ($profile['weight'] > $warning_weight) {
+					$warnings[] = [
+						'rule_id' => $weight_rule['id'],
+						'type' => 'weight_limit',
+						'message' => "Weight ({$profile['weight']}kg) approaching limit",
+						'severity' => 'medium'
+					];
+				}
+			}
+		}
+		
+		// Size validation
+		if ($profile['length_cm'] > 0 || $profile['width_cm'] > 0 || $profile['height_cm'] > 0) {
+			$size_rule = $this->getComplianceRule('size_limit');
+			if ($size_rule) {
+				$config = json_decode($size_rule['rule_value'], true);
+				$max_length = $config['max_length_cm'] ?? 300;
+				$max_width = $config['max_width_cm'] ?? 200;
+				$max_height = $config['max_height_cm'] ?? 150;
+				
+				if ($profile['length_cm'] > $max_length || $profile['width_cm'] > $max_width || $profile['height_cm'] > $max_height) {
+					$violations[] = [
+						'rule_id' => $size_rule['id'],
+						'type' => 'size_limit',
+						'message' => "Dimensions exceed limits (L:{$profile['length_cm']}/{$max_length}, W:{$profile['width_cm']}/{$max_width}, H:{$profile['height_cm']}/{$max_height})",
+						'severity' => 'high'
+					];
+				}
+			}
+		}
+		
+		// Perishable goods validation
+		if ($profile['type'] === 'perishable') {
+			$perishable_rule = $this->getComplianceRule('perishable_time');
+			if ($perishable_rule && $cargo_data['storage_start_time']) {
+				$config = json_decode($perishable_rule['rule_value'], true);
+				$max_hours = $config['max_hours'] ?? 48;
+				$alert_hours = $config['alert_hours'] ?? 36;
+				
+				$storage_start = new DateTime($cargo_data['storage_start_time']);
+				$now = new DateTime();
+				$hours_stored = $now->diff($storage_start)->h + ($now->diff($storage_start)->days * 24);
+				
+				if ($hours_stored > $max_hours) {
+					$violations[] = [
+						'rule_id' => $perishable_rule['id'],
+						'type' => 'perishable_time',
+						'message' => "Perishable cargo exceeded storage time ({$hours_stored}h > {$max_hours}h)",
+						'severity' => 'critical'
+					];
+				} elseif ($hours_stored > $alert_hours) {
+					$warnings[] = [
+						'rule_id' => $perishable_rule['id'],
+						'type' => 'perishable_time',
+						'message' => "Perishable cargo approaching storage limit ({$hours_stored}h)",
+						'severity' => 'medium'
+					];
+				}
+			}
+		}
+		
+		// Hazardous materials validation
+		if ($profile['type'] === 'hazardous') {
+			$hazardous_rule = $this->getComplianceRule('hazardous_approval');
+			if ($hazardous_rule) {
+				// Check if approval already exists
+				$existing_approval = $this->conn->query("SELECT * FROM hazardous_approvals WHERE cargo_id = '{$cargo_id}' AND approval_status = 'pending'");
+				if ($existing_approval->num_rows == 0) {
+					// Create pending approval
+					$this->insertHazardousApproval($cargo_id, 'hazardous_material', null, date('Y-m-d H:i:s', strtotime('+7 days')));
+				}
+				
+				$violations[] = [
+					'rule_id' => $hazardous_rule['id'],
+					'type' => 'hazardous_approval',
+					'message' => "Hazardous materials require approval and safety documentation",
+					'severity' => 'critical'
+				];
+			}
+		}
+		
+		// Record compliance check
+		$check_status = !empty($violations) ? 'failed' : (!empty($warnings) ? 'warning' : 'passed');
+		$check_details = json_encode(['violations' => $violations, 'warnings' => $warnings, 'profile' => $profile]);
+		$this->insertComplianceCheck($cargo_id, 'full_validation', $check_status, $check_details);
+		
+		// Record violations
+		foreach ($violations as $violation) {
+			$this->insertComplianceViolation($cargo_id, $violation['rule_id'], $violation['type'], $violation['message'], $violation['severity']);
+		}
+		
+		return ['violations' => $violations, 'warnings' => $warnings, 'profile' => $profile];
 	}
 
 	public function allocate_storage_for_cargo($cargo_id){

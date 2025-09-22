@@ -104,7 +104,7 @@ function checkPendingApprovals() {
         $pending_count = $result->num_rows;
         logMessage("Found $pending_count hazardous material approvals pending for over 24 hours");
         
-        // Send reminder email
+                // Send reminder email
         $settings_query = $conn->query("SELECT meta_value FROM system_info WHERE meta_field = 'compliance_email'");
         $compliance_email = $settings_query->fetch_assoc()['meta_value'] ?? 'admin@example.com';
         

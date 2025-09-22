@@ -167,28 +167,31 @@ while($row = $cargo_type_qry->fetch_assoc()){
                                         </div>
                                         <div class="row">
                                             <div class="col-lg-4 col-md-6">
-                                                <div class="form-group mb-2">
-                                                    <div class="custom-control custom-checkbox">
-                                                        <input type="checkbox" class="custom-control-input" id="is_perishable" name="is_perishable" value="1" <?= isset($is_perishable) && $is_perishable ? 'checked' : '' ?>>
-                                                        <label class="custom-control-label" for="is_perishable">Perishable Goods</label>
-                                                    </div>
+                                            <div class="form-group mb-2">
+                                                <input type="hidden" name="is_perishable" value="0">
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" class="custom-control-input" id="is_perishable" name="is_perishable" value="1" <?= isset($is_perishable) && $is_perishable ? 'checked' : '' ?>>
+                                                    <label class="custom-control-label" for="is_perishable">Perishable Goods</label>
                                                 </div>
                                             </div>
-                                            <div class="col-lg-4 col-md-6">
-                                                <div class="form-group mb-2">
-                                                    <div class="custom-control custom-checkbox">
-                                                        <input type="checkbox" class="custom-control-input" id="is_hazardous" name="is_hazardous" value="1" <?= isset($is_hazardous) && $is_hazardous ? 'checked' : '' ?>>
-                                                        <label class="custom-control-label" for="is_hazardous">Hazardous Materials</label>
-                                                    </div>
-                                                </div>
                                             </div>
                                             <div class="col-lg-4 col-md-6">
-                                                <div class="form-group mb-2">
-                                                    <div class="custom-control custom-checkbox">
-                                                        <input type="checkbox" class="custom-control-input" id="special_handling_required" name="special_handling_required" value="1" <?= isset($special_handling_required) && $special_handling_required ? 'checked' : '' ?>>
-                                                        <label class="custom-control-label" for="special_handling_required">Special Handling Required</label>
-                                                    </div>
+                                            <div class="form-group mb-2">
+                                                <input type="hidden" name="is_hazardous" value="0">
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" class="custom-control-input" id="is_hazardous" name="is_hazardous" value="1" <?= isset($is_hazardous) && $is_hazardous ? 'checked' : '' ?>>
+                                                    <label class="custom-control-label" for="is_hazardous">Hazardous Materials</label>
                                                 </div>
+                                            </div>
+                                            </div>
+                                            <div class="col-lg-4 col-md-6">
+                                            <div class="form-group mb-2">
+                                                <input type="hidden" name="special_handling_required" value="0">
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" class="custom-control-input" id="special_handling_required" name="special_handling_required" value="1" <?= isset($special_handling_required) && $special_handling_required ? 'checked' : '' ?>>
+                                                    <label class="custom-control-label" for="special_handling_required">Special Handling Required</label>
+                                                </div>
+                                            </div>
                                             </div>
                                         </div>
                                         <div class="row" id="perishable_fields" style="display: none;">

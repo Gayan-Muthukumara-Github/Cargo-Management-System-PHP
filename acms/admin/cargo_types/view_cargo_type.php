@@ -27,6 +27,14 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
         <dd class="pl-4"><?= isset($state_price) ? format_num($state_price) : '' ?></dd>
         <dt class="text-muted">Country to Country Price per kg.</dt>
         <dd class="pl-4"><?= isset($country_price) ? format_num($country_price) : '' ?></dd>
+		<dt class="text-muted">Perishable</dt>
+		<dd class="pl-4">
+			<?php echo (isset($is_perishable) && (int)$is_perishable === 1) ? '<span class="badge badge-info px-3 rounded-pill">Yes</span>' : '<span class="badge badge-secondary px-3 rounded-pill">No</span>'; ?>
+		</dd>
+		<dt class="text-muted">Hazardous</dt>
+		<dd class="pl-4">
+			<?php echo (isset($is_hazardous) && (int)$is_hazardous === 1) ? '<span class="badge badge-warning px-3 rounded-pill">Yes</span>' : '<span class="badge badge-secondary px-3 rounded-pill">No</span>'; ?>
+		</dd>
         <dt class="text-muted">Status</dt>
         <dd class="pl-4">
             <?php if($status == 1): ?>
@@ -35,6 +43,10 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
                 <span class="badge badge-danger px-3 rounded-pill">Inactive</span>
             <?php endif; ?>
         </dd>
+		<dt class="text-muted">Date Created</dt>
+		<dd class="pl-4"><?= isset($date_created) ? date('Y-m-d H:i', strtotime($date_created)) : '—' ?></dd>
+		<dt class="text-muted">Date Updated</dt>
+		<dd class="pl-4"><?= isset($date_updated) && !empty($date_updated) ? date('Y-m-d H:i', strtotime($date_updated)) : '—' ?></dd>
     </dl>
     <div class="clear-fix my-3"></div>
     <div class="text-right">

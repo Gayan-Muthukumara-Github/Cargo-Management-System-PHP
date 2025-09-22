@@ -202,7 +202,14 @@ foreach ($tables as $table) {
             </select>
         </div>
         <div class="col-md-3">
-            <input type="text" id="filter_cargo_ref" class="form-control" placeholder="Cargo Reference">
+            <div class="input-group">
+                <input type="text" id="filter_cargo_ref" class="form-control" placeholder="Cargo Reference">
+                <div class="input-group-append">
+                    <button class="btn btn-secondary" type="button" id="btn_validate_ref">
+                        <i class="fas fa-check-circle mr-1"></i> Validate
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="col-md-3">
             <button id="btn_refresh" class="btn btn-primary btn-block">
@@ -296,6 +303,12 @@ $(document).ready(function() {
                 } else {
                     tbody.append('<tr><td colspan="7" class="text-center">No violations found</td></tr>');
                 }
+            },
+            error: function(xhr) {
+                console.error('get_violations error', xhr.status, xhr.responseText);
+                const tbody = $('#violations_table tbody');
+                tbody.empty();
+                tbody.append('<tr><td colspan="7" class="text-center text-danger">Failed to load violations</td></tr>');
             }
         });
     }
@@ -341,6 +354,12 @@ $(document).ready(function() {
                 } else {
                     tbody.append('<tr><td colspan="5" class="text-center">No pending approvals</td></tr>');
                 }
+            },
+            error: function(xhr) {
+                console.error('get_pending_approvals error', xhr.status, xhr.responseText);
+                const tbody = $('#approvals_table tbody');
+                tbody.empty();
+                tbody.append('<tr><td colspan="5" class="text-center text-danger">Failed to load approvals</td></tr>');
             }
         });
     }
@@ -348,6 +367,34 @@ $(document).ready(function() {
     // Event handlers
     $('#btn_refresh, #filter_severity, #filter_status, #filter_cargo_ref').on('change click', function() {
         loadViolations();
+        loadApprovals();
+    });
+
+    $('#btn_validate_ref').on('click', function() {
+        const ref = $('#filter_cargo_ref').val().trim();
+        if (!ref) {
+            alert_toast('Enter a Cargo Reference first', 'warning');
+            return;
+        }
+        $.ajax({
+            url: _base_url_ + 'admin/compliance_api.php',
+            method: 'POST',
+            data: {action: 'validate_cargo_by_ref', cargo_ref: ref},
+            dataType: 'json',
+            success: function(resp) {
+                if (resp.status === 'success') {
+                    alert_toast('Validation completed', 'success');
+                    loadViolations();
+                    loadApprovals();
+                } else {
+                    alert_toast(resp.message || 'Validation failed', 'error');
+                }
+            },
+            error: function(xhr){
+                console.error('validate_cargo_by_ref error', xhr.status, xhr.responseText);
+                alert_toast('Validation request failed', 'error');
+            }
+        });
     });
     
     // Load initial data

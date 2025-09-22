@@ -33,6 +33,22 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 			<label for="country_price" class="control-label">Country to Country Price per kg.($)</label>
 			<input type="number" step="any" name="country_price" id="country_price" class="form-control form-control-sm rounded-0" value="<?php echo isset($country_price) ? $country_price : ''; ?>" placeholder="$" required/>
 		</div>
+			<div class="form-group">
+				<label class="control-label d-block">Perishable</label>
+				<input type="hidden" name="is_perishable" value="0">
+				<div class="custom-control custom-switch">
+					<input type="checkbox" class="custom-control-input" id="is_perishable" name="is_perishable" value="1" <?php echo isset($is_perishable) && (int)$is_perishable == 1 ? 'checked' : '' ?>>
+					<label class="custom-control-label" for="is_perishable">Requires perishable handling</label>
+				</div>
+			</div>
+			<div class="form-group">
+				<label class="control-label d-block">Hazardous</label>
+				<input type="hidden" name="is_hazardous" value="0">
+				<div class="custom-control custom-switch">
+					<input type="checkbox" class="custom-control-input" id="is_hazardous" name="is_hazardous" value="1" <?php echo isset($is_hazardous) && (int)$is_hazardous == 1 ? 'checked' : '' ?>>
+					<label class="custom-control-label" for="is_hazardous">Contains hazardous materials</label>
+				</div>
+			</div>
 		<div class="form-group">
 			<label for="status" class="control-label">Status</label>
 			<select name="status" id="status" class="form-control form-control-sm rounded-0" required>

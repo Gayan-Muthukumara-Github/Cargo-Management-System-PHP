@@ -14,13 +14,14 @@
         <div class="container-fluid">
 			<table class="table table-hover table-striped table-bordered" id="list">
 				<colgroup>
-					<col width="5%">
+					<col width="4%">
+					<col width="12%">
 					<col width="15%">
-					<col width="20%">
-					<col width="20%">
-					<col width="15%">
+					<col width="18%">
+					<col width="12%">
+					<col width="8%">
+					<col width="8%">
 					<col width="10%">
-					<col width="15%">
 				</colgroup>
 				<thead>
 					<tr>
@@ -29,6 +30,8 @@
 						<th>Cargo Type</th>
 						<th>Description</th>
 						<th>Pricing($)/Kg.</th>
+						<th>Perishable</th>
+						<th>Hazardous</th>
 						<th>Status</th>
 						<th>Action</th>
 					</tr>
@@ -49,13 +52,19 @@
 								<small>State: $<b><?= format_num($row['state_price']) ?></b></small><br>
 								<small>Country: $<b><?= format_num($row['country_price']) ?></b></small><br>
 							</td>
-							<td class="text-center">
-                                <?php if($row['status'] == 1): ?>
-                                    <span class="badge badge-success px-3 rounded-pill">Active</span>
-                                <?php else: ?>
-                                    <span class="badge badge-danger px-3 rounded-pill">Inactive</span>
-                                <?php endif; ?>
-                            </td>
+						<td class="text-center">
+							<?php echo (isset($row['is_perishable']) && $row['is_perishable']) ? '<span class="badge badge-info px-3 rounded-pill">Yes</span>' : '<span class="badge badge-secondary px-3 rounded-pill">No</span>'; ?>
+						</td>
+						<td class="text-center">
+							<?php echo (isset($row['is_hazardous']) && $row['is_hazardous']) ? '<span class="badge badge-warning px-3 rounded-pill">Yes</span>' : '<span class="badge badge-secondary px-3 rounded-pill">No</span>'; ?>
+						</td>
+						<td class="text-center">
+							<?php if($row['status'] == 1): ?>
+								<span class="badge badge-success px-3 rounded-pill">Active</span>
+							<?php else: ?>
+								<span class="badge badge-danger px-3 rounded-pill">Inactive</span>
+							<?php endif; ?>
+						</td>
 							<td align="center">
 								 <button type="button" class="btn btn-flat p-1 btn-default btn-sm dropdown-toggle dropdown-icon" data-toggle="dropdown">
 				                  		Action

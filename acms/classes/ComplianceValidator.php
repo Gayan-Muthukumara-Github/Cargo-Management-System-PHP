@@ -8,7 +8,8 @@ class ComplianceValidator extends DBConnection {
     }
     
     /**
-     * Validate cargo against all compliance rules
+     * Validate cargo against all compliance rules (legacy, writes to DB)
+     * Kept for backward compatibility. New simple mode avoids DB writes.
      */
     public function validateCargo($cargo_id, $cargo_data = []) {
         $violations = [];
@@ -68,6 +69,233 @@ class ComplianceValidator extends DBConnection {
             'warnings' => $warnings,
             'status' => $status
         ];
+    }
+
+    /**
+     * SIMPLE MODE: Compute violations on the fly without writing to DB.
+     * Filters: severity ('', 'critical','high','medium','low'),
+     *          status (ignored; always 'open'), cargo_ref substring filter.
+     */
+    public function getSimpleViolations($severity = '', $status = '', $cargoRef = '') {
+        $rows = $this->fetchCargoRows($cargoRef);
+        $violations = [];
+        foreach ($rows as $row) {
+            $vlist = $this->computeViolationsForRow($row);
+            foreach ($vlist as $v) {
+                if ($severity !== '' && isset($v['severity']) && $v['severity'] !== $severity) continue;
+                // status is always 'open' in simple mode
+                $v['cargo_ref'] = $row['ref_code'];
+                $violations[] = $v;
+            }
+        }
+        return $violations;
+    }
+
+    private function fetchCargoRows($cargoRef) {
+        $where = '';
+        $params = [];
+        $types = '';
+        if ($cargoRef !== '') {
+            $where = 'WHERE cl.ref_code LIKE ?';
+            $params[] = '%'.$cargoRef.'%';
+            $types .= 's';
+        }
+        $sql = "SELECT cl.id, cl.ref_code, cl.is_perishable, cl.storage_start_time, cl.max_storage_hours,
+                       cl.is_hazardous, cl.weight_kg, cl.length_cm, cl.width_cm, cl.height_cm
+                FROM cargo_list cl $where ORDER BY cl.date_created DESC LIMIT 200";
+        $stmt = $this->conn->prepare($sql);
+        if (!empty($params)) $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $rows = [];
+        while ($r = $result->fetch_assoc()) $rows[] = $r;
+        return $rows;
+    }
+
+    private function computeViolationsForRow($row) {
+        $violations = [];
+        // Defaults (simple mode)
+        $maxHours = isset($row['max_storage_hours']) && $row['max_storage_hours'] ? (int)$row['max_storage_hours'] : 48;
+        $alertHours = 36;
+        $maxWeight = 1000.0; $warnWeight = 800.0;
+        $maxL = 300; $maxW = 200; $maxH = 150;
+
+        // Perishable time
+        if (!empty($row['is_perishable']) && !empty($row['storage_start_time'])) {
+            $storageStart = new \DateTime($row['storage_start_time']);
+            $now = new \DateTime();
+            $diff = $now->diff($storageStart);
+            $hours = $diff->h + ($diff->days * 24);
+            if ($hours > $maxHours) {
+                $violations[] = [
+                    'id' => null,
+                    'cargo_id' => $row['id'],
+                    'rule_id' => null,
+                    'violation_type' => 'perishable_time',
+                    'violation_message' => "Perishable cargo exceeded max storage ({$maxHours}h). Current: {$hours}h.",
+                    'severity' => 'critical',
+                    'status' => 'open',
+                    'date_created' => date('Y-m-d H:i:s')
+                ];
+            } elseif ($hours > $alertHours) {
+                $violations[] = [
+                    'id' => null,
+                    'cargo_id' => $row['id'],
+                    'rule_id' => null,
+                    'violation_type' => 'perishable_time',
+                    'violation_message' => "Perishable cargo approaching limit {$hours}/{$maxHours}h.",
+                    'severity' => 'medium',
+                    'status' => 'open',
+                    'date_created' => date('Y-m-d H:i:s')
+                ];
+            }
+        }
+
+        // Hazardous approval
+        if (!empty($row['is_hazardous'])) {
+            $approved = $this->hasApprovedHazardous($row['id']);
+            if (!$approved) {
+                $violations[] = [
+                    'id' => null,
+                    'cargo_id' => $row['id'],
+                    'rule_id' => null,
+                    'violation_type' => 'hazardous_approval',
+                    'violation_message' => 'Hazardous cargo missing required approvals.',
+                    'severity' => 'high',
+                    'status' => 'open',
+                    'date_created' => date('Y-m-d H:i:s')
+                ];
+            }
+        }
+
+        // Weight
+        if (!empty($row['weight_kg'])) {
+            $w = (float)$row['weight_kg'];
+            if ($w > $maxWeight) {
+                $violations[] = [
+                    'id' => null,
+                    'cargo_id' => $row['id'],
+                    'rule_id' => null,
+                    'violation_type' => 'weight_limit',
+                    'violation_message' => "Weight {$w}kg exceeds max {$maxWeight}kg.",
+                    'severity' => 'high',
+                    'status' => 'open',
+                    'date_created' => date('Y-m-d H:i:s')
+                ];
+            } elseif ($w > $warnWeight) {
+                $violations[] = [
+                    'id' => null,
+                    'cargo_id' => $row['id'],
+                    'rule_id' => null,
+                    'violation_type' => 'weight_limit',
+                    'violation_message' => "Weight {$w}kg approaching limit.",
+                    'severity' => 'medium',
+                    'status' => 'open',
+                    'date_created' => date('Y-m-d H:i:s')
+                ];
+            }
+        }
+
+        // Size
+        $overDims = [];
+        if (!empty($row['length_cm']) && (int)$row['length_cm'] > $maxL) $overDims[] = 'length';
+        if (!empty($row['width_cm']) && (int)$row['width_cm'] > $maxW) $overDims[] = 'width';
+        if (!empty($row['height_cm']) && (int)$row['height_cm'] > $maxH) $overDims[] = 'height';
+        if (!empty($overDims)) {
+            $violations[] = [
+                'id' => null,
+                'cargo_id' => $row['id'],
+                'rule_id' => null,
+                'violation_type' => 'size_limit',
+                'violation_message' => 'Dimensions exceed limits: '.implode(', ', $overDims),
+                'severity' => 'high',
+                'status' => 'open',
+                'date_created' => date('Y-m-d H:i:s')
+            ];
+        }
+
+        return $violations;
+    }
+
+    private function hasApprovedHazardous($cargo_id) {
+        $sql = "SELECT 1 FROM hazardous_approvals WHERE cargo_id = ? AND approval_status = 'approved' LIMIT 1";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param('i', $cargo_id);
+        $stmt->execute();
+        $stmt->store_result();
+        return $stmt->num_rows > 0;
+    }
+
+    /**
+     * SIMPLE MODE: Update one cargo's compliance_status based on computed violations.
+     */
+    public function updateComplianceStatusSimple($cargo_id) {
+        $rows = $this->fetchCargoRowsByIds([$cargo_id]);
+        if (empty($rows)) return false;
+        $row = $rows[0];
+        $violations = $this->computeViolationsForRow($row);
+        $status = 'compliant';
+        if (!empty($violations)) {
+            $hasCriticalOrHigh = false;
+            $hasMedium = false;
+            foreach ($violations as $v) {
+                if ($v['severity'] === 'critical' || $v['severity'] === 'high') $hasCriticalOrHigh = true;
+                if ($v['severity'] === 'medium') $hasMedium = true;
+            }
+            if ($hasCriticalOrHigh) $status = 'non_compliant';
+            elseif ($hasMedium) $status = 'requires_approval';
+        } elseif ((string)$row['is_perishable'] === '0' && (string)$row['is_hazardous'] === '0' && empty($row['weight_kg'])) {
+            $status = 'pending';
+        }
+        $sql = "UPDATE cargo_list SET compliance_status = ? WHERE id = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param('si', $status, $row['id']);
+        return $stmt->execute();
+    }
+
+    /**
+     * SIMPLE MODE: Recompute compliance_status for all cargo.
+     */
+    public function recomputeAllComplianceStatusesSimple() {
+        $rows = $this->fetchCargoRows('');
+        $updated = 0;
+        foreach ($rows as $row) {
+            $violations = $this->computeViolationsForRow($row);
+            $status = 'compliant';
+            if (!empty($violations)) {
+                $hasCriticalOrHigh = false;
+                $hasMedium = false;
+                foreach ($violations as $v) {
+                    if ($v['severity'] === 'critical' || $v['severity'] === 'high') $hasCriticalOrHigh = true;
+                    if ($v['severity'] === 'medium') $hasMedium = true;
+                }
+                if ($hasCriticalOrHigh) $status = 'non_compliant';
+                elseif ($hasMedium) $status = 'requires_approval';
+            } elseif ((string)$row['is_perishable'] === '0' && (string)$row['is_hazardous'] === '0' && empty($row['weight_kg'])) {
+                $status = 'pending';
+            }
+            $sql = "UPDATE cargo_list SET compliance_status = ? WHERE id = ?";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param('si', $status, $row['id']);
+            if ($stmt->execute()) $updated++;
+        }
+        return $updated;
+    }
+
+    private function fetchCargoRowsByIds(array $ids) {
+        if (empty($ids)) return [];
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $types = str_repeat('i', count($ids));
+        $sql = "SELECT cl.id, cl.ref_code, cl.is_perishable, cl.storage_start_time, cl.max_storage_hours,
+                       cl.is_hazardous, cl.weight_kg, cl.length_cm, cl.width_cm, cl.height_cm
+                FROM cargo_list cl WHERE cl.id IN ($placeholders)";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param($types, ...$ids);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $rows = [];
+        while ($r = $result->fetch_assoc()) $rows[] = $r;
+        return $rows;
     }
     
     /**
